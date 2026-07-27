@@ -1,5 +1,5 @@
 {
-  "name": "profit-decision",
+  "name": "profitpilot",
   "private": true,
   "scripts": {
     "build": "react-router build",
