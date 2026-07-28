@@ -32,19 +32,15 @@ Cost Profile architectural boundaries: aggregate-oriented `CostProfileRepository
 
 Permanent architecture documentation: `docs/` as the single source of truth for backlog, ADRs, roadmap, and architecture README.
 
+### PP-0007
+
+Cost Profile route layer + minimal read-only page: `/app/products/:productId/cost-profile` loader via `CostProfileService`, ensure-on-miss, ErrorBoundary strategy (ADR-005). No editing UI or actions.
+
 ---
 
 ## Upcoming
 
-### PP-0005
-
-*(Placeholder — define when the next implementation prompt is issued.)*
-
-### PP-0006
-
-*(Placeholder — define when the next implementation prompt is issued.)*
-
-### PP-0007
+### PP-0008
 
 *(Placeholder — define when the next implementation prompt is issued.)*
 

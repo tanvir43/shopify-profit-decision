@@ -1,4 +1,8 @@
 export {
+  CostProfilePage,
+  type CostProfilePageData,
+} from "./CostProfilePage";
+export {
   CostProfileNotFoundError,
   CostProfileValidationError,
 } from "./errors";

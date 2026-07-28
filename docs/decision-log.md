@@ -12,6 +12,7 @@ Each entry is an Architecture Decision Record (ADR). ADRs are append-only in spi
 | [ADR-002](#adr-002--costprofile-is-aggregate-root) | CostProfile is Aggregate Root | 2026-07-28 | PP-0003 / PP-0004 | Accepted |
 | [ADR-003](#adr-003--no-generic-crud-repository) | No Generic CRUD Repository | 2026-07-28 | PP-0004 | Accepted |
 | [ADR-004](#adr-004--enum-based-cost-categories-with-custom) | Enum-based Cost Categories with CUSTOM | 2026-07-28 | PP-0003-R1 | Accepted |
+| [ADR-005](#adr-005--product-scoped-cost-profile-url-without-products-layout-nesting) | Product-scoped Cost Profile URL without Products layout nesting | 2026-07-28 | PP-0007 | Accepted |
 
 ---
 
@@ -154,3 +155,39 @@ Enums keep TypeScript and Prisma aligned and make downstream calculators / advis
 - UI may still show a display name for custom lines; the stored taxonomy value remains `CUSTOM` until promoted.
 - Adding a category is a deliberate migration + ADR/update, not an ad-hoc string.
 - Category is never unique per profile — uniqueness lives in item identity within the aggregate.
+
+---
+
+## ADR-005 — Product-scoped Cost Profile URL without Products layout nesting
+
+| Field | Value |
+| --- | --- |
+| **ADR ID** | ADR-005 |
+| **Date** | 2026-07-28 |
+| **Prompt ID** | PP-0007 |
+| **Status** | Accepted |
+
+### Decision
+
+Expose Cost Profiles at `/app/products/:productId/cost-profile` via the React Router flat-route file `app.products_.$productId.cost-profile.tsx`. The trailing underscore on `products_` keeps a product-scoped URL while **opting out** of layout nesting under `app.products.tsx`. The route still nests under `app.tsx` (embedded shell / App Bridge).
+
+### Context
+
+Cost Profile is keyed by `shop + productId` (ADR-002). Merchants open a profile for a product, so the URL should be product-based. Naively nesting under `app.products.tsx` would force that leaf list route to become an `Outlet` layout and split the list into `_index` — coupling every future product child to the products list shell.
+
+### Alternatives Considered
+
+1. **Nest under products layout** (`app.products.tsx` + `app.products.$productId.cost-profile.tsx`) — rejected for MVP; requires converting the products list into a layout parent without shared UI benefit yet.
+2. **Resource URL** (`/app/cost-profiles/:productId`) — clean module boundary, but weaker product discoverability in the Admin URL path.
+3. **Product path without layout nesting (chosen)** — `products_` escape: product-scoped URL, thin route under `app`, no products list refactor.
+
+### Reasoning
+
+Product identity belongs in the path; products-list layout ownership does not. React Router’s trailing-`_` convention is the intentional escape hatch for nested URLs without nested layouts. The Cost Profile page/module owns presentation; the route stays auth + param parse + `CostProfileService` only.
+
+### Consequences
+
+- File naming: `app/routes/app.products_.$productId.cost-profile.tsx`.
+- `productId` is a single path segment (URL-encode GIDs such as `gid://shopify/Product/123`).
+- Future product-detail layout nesting can be introduced deliberately later without rewriting this URL.
+- Server composition of Prisma → repository → service lives in `costProfileService.server.ts`; routes never import Prisma or repositories.

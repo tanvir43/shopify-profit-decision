@@ -190,4 +190,5 @@ Rules:
 | ADR-002 | CostProfile aggregate root |
 | ADR-003 | No generic CRUD repository |
 | ADR-004 | Enum categories + CUSTOM |
+| ADR-005 | Product-scoped Cost Profile URL without products layout nesting |
 | ARCH-001 | Patch-based cost item updates (deferred; use `replaceItems`) |
