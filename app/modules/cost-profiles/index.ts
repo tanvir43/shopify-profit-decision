@@ -1,6 +1,19 @@
-export type { CostProfileMapper } from "./mappers";
-export type { CostProfileRepository } from "./repositories";
-export type { CostProfileService } from "./services";
+export {
+  CostProfileNotFoundError,
+  CostProfileValidationError,
+} from "./errors";
+export {
+  prismaCostProfileMapper,
+  type CostProfileMapper,
+} from "./mappers";
+export {
+  createPrismaCostProfileRepository,
+  type CostProfileRepository,
+} from "./repositories";
+export {
+  createCostProfileService,
+  type CostProfileService,
+} from "./services";
 export type {
   CostCategory,
   CostItem,
