@@ -1,7 +1,13 @@
 export {
   CostProfilePage,
   type CostProfilePageData,
+  type CostProfileStatus,
 } from "./CostProfilePage";
+export {
+  CostItemsEmptyState,
+  CostItemsList,
+  type CostItemListEntry,
+} from "./components";
 export {
   CostProfileNotFoundError,
   CostProfileValidationError,

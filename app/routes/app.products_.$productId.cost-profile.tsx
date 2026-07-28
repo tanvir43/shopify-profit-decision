@@ -18,11 +18,23 @@ import { costProfileService } from "~/modules/cost-profiles/services/costProfile
 import { authenticate } from "~/shopify.server";
 
 function toPageData(profile: CostProfile): CostProfilePageData {
+  const items = [...profile.items]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      isActive: item.isActive,
+    }));
+
   return {
     productId: profile.productId,
     currency: profile.currency,
-    costItemCount: profile.items.length,
-    notes: profile.notes,
+    status: items.length > 0 ? "configured" : "not_configured",
+    totalCostItems: items.length,
+    activeCostItems: items.filter((item) => item.isActive).length,
+    items,
   };
 }
 

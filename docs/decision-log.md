@@ -13,6 +13,7 @@ Each entry is an Architecture Decision Record (ADR). ADRs are append-only in spi
 | [ADR-003](#adr-003--no-generic-crud-repository) | No Generic CRUD Repository | 2026-07-28 | PP-0004 | Accepted |
 | [ADR-004](#adr-004--enum-based-cost-categories-with-custom) | Enum-based Cost Categories with CUSTOM | 2026-07-28 | PP-0003-R1 | Accepted |
 | [ADR-005](#adr-005--product-scoped-cost-profile-url-without-products-layout-nesting) | Product-scoped Cost Profile URL without Products layout nesting | 2026-07-28 | PP-0007 | Accepted |
+| [ADR-006](#adr-006--cost-profile-merchant-ui-simplicity) | Cost Profile merchant UI simplicity | 2026-07-28 | PP-0008 | Accepted |
 
 ---
 
@@ -191,3 +192,39 @@ Product identity belongs in the path; products-list layout ownership does not. R
 - `productId` is a single path segment (URL-encode GIDs such as `gid://shopify/Product/123`).
 - Future product-detail layout nesting can be introduced deliberately later without rewriting this URL.
 - Server composition of Prisma → repository → service lives in `costProfileService.server.ts`; routes never import Prisma or repositories.
+
+---
+
+## ADR-006 — Cost Profile merchant UI simplicity
+
+| Field | Value |
+| --- | --- |
+| **ADR ID** | ADR-006 |
+| **Date** | 2026-07-28 |
+| **Prompt ID** | PP-0008 |
+| **Status** | Accepted |
+
+### Decision
+
+The Cost Profile page is a **usability-first merchant surface**. It must answer only three questions within ~30 seconds: which product, whether costs are configured, and what to do next. Prefer progressive disclosure over complete data dump. Prefer Polaris web components (`s-*`) with at most **one** prominent primary CTA. Summary shows **item counts only** — never money totals or pricing math.
+
+### Context
+
+ProfitPilot must feel simpler than a spreadsheet. First-time merchants are not accountants. Showing values, notes, formulas, or inline editors on the first screen creates cognitive load and invites “accounting UI” expectations that conflict with the decision-engine product.
+
+### Alternatives Considered
+
+1. **Full cost ledger on day one** (values, totals, notes, inline edit) — rejected; too dense for first open.
+2. **Table-first IndexTable layout** — rejected for MVP read-only list; tables imply bulk ops and dense columns.
+3. **Simple header + count summary + list/empty state (chosen)** — status from presence of items; one CTA (`Add First Cost` or `Manage Cost Items`).
+
+### Reasoning
+
+Merchants need orientation before configuration. Counts answer “have I started?” without inventing profit math in the UI layer. Empty-state copy explains business outcome (smarter pricing later), not implementation. Loader maps domain → page DTO; React stays presentation-only.
+
+### Consequences
+
+- Cost Profile UI conventions for future screens: single primary CTA, no competing actions, no money on this page until a pricing module owns it.
+- `Configured` means at least one cost item exists; `Not Configured` means the list is empty.
+- Editing flows wire into the existing CTA slots later — do not add secondary “edit” chrome on list rows until needed.
+- Prefer list/card rows (name, category, type, active badge) over tables for read-only cost lines.

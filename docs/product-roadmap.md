@@ -36,11 +36,15 @@ Permanent architecture documentation: `docs/` as the single source of truth for 
 
 Cost Profile route layer + minimal read-only page: `/app/products/:productId/cost-profile` loader via `CostProfileService`, ensure-on-miss, ErrorBoundary strategy (ADR-005). No editing UI or actions.
 
+### PP-0008
+
+Merchant-facing Cost Profile UX: header (product, currency, status), count-only summary, empty state or read-only item list, single primary CTA. Polaris web components; no money math; no inline editing (ADR-006).
+
 ---
 
 ## Upcoming
 
-### PP-0008
+### PP-0009
 
 *(Placeholder — define when the next implementation prompt is issued.)*
 
