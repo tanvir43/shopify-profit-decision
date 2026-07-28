@@ -1,6 +1,7 @@
 // ProfitPilot — Prisma schema
-// Business domain models will be added in feature modules as the app evolves.
 // Session is required by Shopify App session storage and is not a business table.
+// Cost Profile domain (PP-0003-R1) is the foundation for Pricing, Discount, Break-even,
+// Bundle, and AI Advisor modules. No pricing formulas live here — only business facts.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,6 +11,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// -----------------------------------------------------------------------------
+// Shopify session storage (platform concern — not a business domain table)
+// -----------------------------------------------------------------------------
 
 model Session {
   id                  String    @id
@@ -29,4 +34,95 @@ model Session {
   emailVerified       Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+}
+
+// -----------------------------------------------------------------------------
+// Cost Profile domain
+//
+// Shopify Product (external)  →  CostProfile (1:1 per shop)  →  CostItem (1:N)
+//
+// Products are not mirrored in our DB; productId is a Shopify reference
+// (GID or legacy ID). This keeps ownership with Shopify and avoids sync drift.
+//
+// Design intent (PP-0003-R1):
+// - Categories classify facts; they do not constrain how many items share a bucket.
+// - isActive soft-excludes a line from decisions without destroying merchant data.
+// - sortOrder is UI presentation state owned by the domain (not derived from createdAt).
+// -----------------------------------------------------------------------------
+
+/// How a CostItem value is interpreted by downstream modules.
+/// FIXED      — absolute amount in CostProfile.currency (e.g. packaging $1.20)
+/// PERCENTAGE — proportion of a base amount (e.g. transaction fee 2.9%)
+/// Downstream calculators decide the base (price, COGS, etc.); the schema does not.
+enum CostUnit {
+  FIXED
+  PERCENTAGE
+}
+
+/// System taxonomy for cost lines. Multiple CostItems may share one category.
+/// CUSTOM is the escape hatch for merchant-defined costs that do not map yet.
+/// New first-class categories are added by extending this enum (controlled change),
+/// not by inventing parallel tables — keeps reporting/AI labels stable and typed.
+enum CostCategory {
+  PRODUCT
+  PACKAGING
+  SHIPPING
+  TRANSACTION
+  CUSTOM
+}
+
+/// One cost profile per Shopify product within a shop.
+/// Future modules attach pricing/discount/break-even decisions to this profile
+/// rather than inventing parallel cost trees.
+model CostProfile {
+  id        String   @id @default(cuid())
+  /// Shop domain (e.g. "store.myshopify.com") — multi-tenant isolation key.
+  shop      String
+  /// Shopify product identifier (GID preferred). Not a local FK.
+  productId String
+  /// ISO 4217 currency code governing FIXED CostItem values (e.g. "USD").
+  currency  String
+  /// Free-form merchant notes about this product's cost structure.
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CostItem[]
+
+  /// Enforces: one Cost Profile per Shopify Product per shop.
+  @@unique([shop, productId])
+  @@index([shop])
+}
+
+/// Atomic cost line within a profile — a business fact, not a calculation.
+/// Fixed and percentage costs share one shape so Pricing, Bundle, Wholesale,
+/// and AI Advisor can compose the same rows without schema forks.
+model CostItem {
+  id            String       @id @default(cuid())
+  costProfileId String
+  /// Display / semantic label (e.g. "Card processing", "Poly mailer").
+  name          String
+  /// Numeric magnitude. Meaning depends on `unit` (amount vs percent).
+  /// Stored as Decimal for money-safe precision; never Float.
+  value         Decimal      @db.Decimal(19, 6)
+  unit          CostUnit
+  /// Taxonomy bucket. Not unique per profile — many items may share a category.
+  category      CostCategory
+  /// true  = included in downstream decision calculations
+  /// false = retained for history / seasonal toggle; ignored by calculators
+  isActive      Boolean      @default(true)
+  /// Merchant-controlled display order within the profile (ascending).
+  /// Gaps are allowed; reordering updates these integers in app logic.
+  sortOrder     Int          @default(0)
+  /// true  = seeded / platform-owned default (may be constrained in app logic)
+  /// false = merchant-created
+  isSystem      Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  costProfile CostProfile @relation(fields: [costProfileId], references: [id], onDelete: Cascade)
+
+  @@index([costProfileId, sortOrder])
+  @@index([costProfileId, isActive])
+  @@index([category])
 }
