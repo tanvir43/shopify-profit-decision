@@ -1,11 +1,16 @@
 import { PageLayout } from "~/components/PageLayout";
 
 import { ProductList } from "./components";
+import type { ProductsPageData } from "./types";
 
-export function ProductsPage() {
+type ProductsPageProps = {
+  data: ProductsPageData;
+};
+
+export function ProductsPage({ data }: ProductsPageProps) {
   return (
     <PageLayout title="Products">
-      <ProductList />
+      <ProductList data={data} />
     </PageLayout>
   );
 }
