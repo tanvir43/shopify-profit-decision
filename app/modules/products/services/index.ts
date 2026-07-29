@@ -1,4 +1,2 @@
-export {
-  fetchProductsPage,
-  PRODUCTS_PAGE_SIZE,
-} from "./shopifyProductsService.server";
+export type { TrackedProductService } from "./TrackedProductService";
+export { createTrackedProductService } from "./createTrackedProductService";

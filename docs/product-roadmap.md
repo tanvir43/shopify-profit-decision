@@ -40,13 +40,25 @@ Cost Profile route layer + minimal read-only page: `/app/products/:productId/cos
 
 Merchant-facing Cost Profile UX: header (product, currency, status), count-only summary, empty state or read-only item list, single primary CTA. Polaris web components; no money math; no inline editing (ADR-006).
 
+### PP-0010
+
+Tracked Products Workspace: `TrackedProduct` reference model (no Shopify catalog sync), repository/service, empty state + list by Shopify product ID and tracked date. Resource Picker deferred.
+
+### PP-0011
+
+Cost Profile onboarding choice screen: product details route (`/app/products/:trackedProductId`), Open action from workspace, two-path onboarding UI, placeholder Quick Start and Detailed Setup routes. DB-only loader; no Cost Profile creation or Shopify calls.
+
 ---
 
 ## Upcoming
 
-### PP-0009
+### PP-0012
 
-*(Placeholder — define when the next implementation prompt is issued.)*
+*(Placeholder — Quick Start cost entry flow.)*
+
+### PP-0013
+
+*(Placeholder — Detailed Cost Builder flow.)*
 
 ---
 

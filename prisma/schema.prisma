@@ -126,3 +126,29 @@ model CostItem {
   @@index([costProfileId, isActive])
   @@index([category])
 }
+
+// -----------------------------------------------------------------------------
+// Tracked Product domain (PP-0010)
+//
+// Shopify remains the source of truth for product data.
+// TrackedProduct stores only a merchant-chosen reference — no catalog sync,
+// no cached title/image, no Cost Profile side effects.
+// -----------------------------------------------------------------------------
+
+/// Reference to a Shopify product the merchant has chosen to optimize.
+/// Does not duplicate Shopify product fields.
+model TrackedProduct {
+  id               String   @id @default(cuid())
+  /// Shop domain (e.g. "store.myshopify.com") — multi-tenant isolation key.
+  shopId           String
+  /// Shopify product identifier (GID preferred). Not a local FK.
+  shopifyProductId String
+  /// When the merchant added this product to the workspace.
+  trackedAt        DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  /// One Shopify product can only be tracked once per shop.
+  @@unique([shopId, shopifyProductId])
+  @@index([shopId])
+}

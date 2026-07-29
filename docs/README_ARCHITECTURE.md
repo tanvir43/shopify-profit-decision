@@ -33,11 +33,12 @@ For lasting decisions, read `decision-log.md`. For deferred work, read `architec
                               │
 ┌─────────────────────────────▼───────────────────────────────┐
 │  Prisma + PostgreSQL                                        │
-│  Session (platform) · CostProfile / CostItem (domain facts) │
+│  Session (platform) · TrackedProduct (refs) ·               │
+│  CostProfile / CostItem (domain facts)                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**External ownership:** Shopify owns Products. We store `productId` references (GID preferred), not a mirrored product catalog as source of truth.
+**External ownership:** Shopify owns Products. We store `TrackedProduct` / `productId` references (GID preferred), not a mirrored product catalog as source of truth.
 
 **Multi-tenancy:** Every domain read/write is scoped by `shop` from the Shopify session.
 
@@ -47,7 +48,7 @@ For lasting decisions, read `decision-log.md`. For deferred work, read `architec
 
 | Module | Responsibility | Depends on |
 | --- | --- | --- |
-| `products` | Product list/detail UI contracts; Shopify product access port | Shopify Admin API (via repository) |
+| `products` | Tracked Products Workspace (refs); Shopify product access port | DB (`TrackedProduct`); Shopify Admin API when enriching/picking |
 | `cost-profiles` | Cost facts aggregate; decision projections | Own repository/mapper; never Pricing formulas |
 | `pricing` | Future pricing decisions UI/logic | `CostProfileService` (not repository) |
 | `discounts` | Future safe-discount flows | `CostProfileService` |

@@ -20,3 +20,15 @@ export function formatProductStatus(
 export function costProfileHref(productId: string): string {
   return `/app/products/${encodeURIComponent(productId)}/cost-profile`;
 }
+
+export function trackedProductHref(trackedProductId: string): string {
+  return `/app/products/${encodeURIComponent(trackedProductId)}`;
+}
+
+export function quickStartHref(trackedProductId: string): string {
+  return `/app/products/${encodeURIComponent(trackedProductId)}/quick-start`;
+}
+
+export function detailedSetupHref(trackedProductId: string): string {
+  return `/app/products/${encodeURIComponent(trackedProductId)}/detailed-setup`;
+}
