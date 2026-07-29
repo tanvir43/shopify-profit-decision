@@ -12,8 +12,8 @@ export {
   ProductList,
   ProductListEmptyState,
   TrackedProductList,
+  TrackedProductListSkeleton,
   TrackedProductsEmptyState,
-  type TrackedProductListItem,
 } from "./components";
 export type { ShopifyProductMapper } from "./mappers";
 export type {
@@ -28,4 +28,5 @@ export type {
   ProductSummary,
   ProductVariant,
   TrackedProduct,
+  TrackedProductWorkspaceItem,
 } from "./types";

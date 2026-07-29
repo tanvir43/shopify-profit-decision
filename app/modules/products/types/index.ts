@@ -3,3 +3,4 @@ export type { ProductsPageData, ProductsPageInfo } from "./ProductsPageData";
 export type { ProductSummary } from "./ProductSummary";
 export type { ProductVariant } from "./ProductVariant";
 export type { TrackedProduct } from "./TrackedProduct";
+export type { TrackedProductWorkspaceItem } from "./TrackedProductWorkspaceItem";

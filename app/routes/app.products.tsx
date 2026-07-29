@@ -8,31 +8,23 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { ProductsPage } from "~/modules/products";
 import type { TrackProductsActionData } from "~/modules/products/hooks/useAddTrackedProducts";
+import { loadTrackedProductWorkspace } from "~/modules/products/services/trackedProductWorkspace.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
 
-function formatTrackedAt(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
 /**
  * Tracked Products Workspace.
- * Loads merchant-chosen product references only — no Shopify product fetch.
+ * Loads tracked product references from the database, then enriches
+ * them with a single batched Shopify Admin GraphQL request at runtime.
  */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   const tracked = await trackedProductService.listTrackedProducts(session.shop);
 
   return {
-    products: tracked.map((product) => ({
-      id: product.id,
-      shopifyProductId: product.shopifyProductId,
-      trackedAt: formatTrackedAt(product.trackedAt),
-    })),
+    trackedCount: tracked.length,
+    workspace: loadTrackedProductWorkspace(admin, tracked),
   };
 };
 

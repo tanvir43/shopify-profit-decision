@@ -1,4 +1,9 @@
-export type ProductStatusLabel = "Active" | "Draft" | "Archived";
+export type ProductStatusLabel =
+  | "Active"
+  | "Draft"
+  | "Archived"
+  | "Unavailable"
+  | "Unknown";
 
 export type ProductStatusTone = "success" | "caution" | "neutral";
 
@@ -12,9 +17,17 @@ export function formatProductStatus(
       return { label: "Draft", tone: "caution" };
     case "ARCHIVED":
       return { label: "Archived", tone: "neutral" };
+    case "UNAVAILABLE":
+      return { label: "Unavailable", tone: "neutral" };
+    case "UNKNOWN":
+      return { label: "Unknown", tone: "neutral" };
     default:
       return { label: "Draft", tone: "neutral" };
   }
+}
+
+export function isTrackedProductUnavailable(status: string): boolean {
+  return status === "UNAVAILABLE";
 }
 
 export function costProfileHref(productId: string): string {

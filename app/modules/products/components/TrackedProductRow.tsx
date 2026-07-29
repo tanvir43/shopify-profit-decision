@@ -1,20 +1,29 @@
-import { trackedProductHref } from "../lib/productStatus";
+import {
+  formatProductStatus,
+  isTrackedProductUnavailable,
+  trackedProductHref,
+} from "../lib/productStatus";
+import type { TrackedProductWorkspaceItem } from "../types/TrackedProductWorkspaceItem";
 
-type TrackedProductRowProps = {
-  id: string;
-  shopifyProductId: string;
-  trackedAt: string;
-};
+type TrackedProductRowProps = TrackedProductWorkspaceItem;
 
-/**
- * Architecture-first row: Shopify product ID + tracked date only.
- * Title/image enrichment is intentionally deferred.
- */
 export function TrackedProductRow({
-  id,
-  shopifyProductId,
+  trackedProductId,
+  title,
+  status,
+  imageUrl,
+  imageAlt,
   trackedAt,
 }: TrackedProductRowProps) {
+  const { label, tone } = formatProductStatus(status);
+  const unavailable = isTrackedProductUnavailable(status);
+  const thumbnailAlt =
+    imageUrl && imageAlt
+      ? imageAlt
+      : imageUrl
+        ? `Photo of ${title}`
+        : "";
+
   return (
     <s-box padding="base" borderWidth="base" borderRadius="base">
       <s-stack
@@ -23,13 +32,27 @@ export function TrackedProductRow({
         alignItems="center"
         justifyContent="space-between"
       >
-        <s-stack direction="block" gap="small-100">
-          <s-text type="strong">{shopifyProductId}</s-text>
-          <s-text color="subdued">Tracked {trackedAt}</s-text>
+        <s-stack direction="inline" gap="base" alignItems="center">
+          {imageUrl ? (
+            <s-thumbnail src={imageUrl} alt={thumbnailAlt} size="small" />
+          ) : (
+            <s-thumbnail alt="" size="small" />
+          )}
+          <s-stack direction="block" gap="small-100">
+            <s-text type="strong">{title}</s-text>
+            <s-badge tone={tone}>{label}</s-badge>
+          </s-stack>
         </s-stack>
-        <s-button href={trackedProductHref(id)} variant="secondary">
-          Open
-        </s-button>
+        <s-stack direction="inline" gap="base" alignItems="center">
+          <s-text color="subdued">Tracked {trackedAt}</s-text>
+          <s-button
+            href={unavailable ? undefined : trackedProductHref(trackedProductId)}
+            variant="secondary"
+            disabled={unavailable}
+          >
+            Open
+          </s-button>
+        </s-stack>
       </s-stack>
     </s-box>
   );

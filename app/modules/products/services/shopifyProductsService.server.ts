@@ -17,8 +17,22 @@ type ShopifyProductNode = {
   id: string;
   title: string;
   status: string;
-  featuredImage?: { url: string } | null;
+  featuredImage?: { url: string; altText?: string | null } | null;
 };
+
+export type ShopifyProductEnrichment = {
+  title: string;
+  status: string;
+  imageUrl: string | null;
+  imageAlt: string | null;
+};
+
+type ShopifyProductByIdNode = {
+  id: string;
+  title: string;
+  status: string;
+  featuredImage?: { url: string; altText?: string | null } | null;
+} | null;
 
 type ShopifyProductsResponse = {
   data?: {
@@ -99,4 +113,70 @@ export async function fetchProductsPage(
     products: edges.map((edge) => toProductSummary(edge.node)),
     pageInfo,
   };
+}
+
+type ShopifyNodesResponse = {
+  data?: {
+    nodes?: ShopifyProductByIdNode[];
+  };
+  errors?: Array<{ message: string }>;
+};
+
+function toProductEnrichment(
+  node: NonNullable<ShopifyProductByIdNode>,
+): ShopifyProductEnrichment {
+  return {
+    title: node.title,
+    status: node.status,
+    imageUrl: node.featuredImage?.url ?? null,
+    imageAlt: node.featuredImage?.altText ?? null,
+  };
+}
+
+/**
+ * Batched Shopify product lookup by GID.
+ * Returns a map keyed by product id. Missing or deleted products are omitted.
+ */
+export async function fetchProductsByIds(
+  admin: AdminGraphql,
+  productIds: string[],
+): Promise<Map<string, ShopifyProductEnrichment>> {
+  if (productIds.length === 0) {
+    return new Map();
+  }
+
+  const response = await admin.graphql(
+    `#graphql
+      query TrackedProductsEnrichment($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on Product {
+            id
+            title
+            status
+            featuredImage {
+              url
+              altText
+            }
+          }
+        }
+      }
+    `,
+    { variables: { ids: productIds } },
+  );
+
+  const json = (await response.json()) as ShopifyNodesResponse;
+
+  if (json.errors?.length) {
+    throw new Error("Unable to load product details from Shopify.");
+  }
+
+  const products = new Map<string, ShopifyProductEnrichment>();
+
+  for (const node of json.data?.nodes ?? []) {
+    if (node?.id && node.title != null) {
+      products.set(node.id, toProductEnrichment(node));
+    }
+  }
+
+  return products;
 }
