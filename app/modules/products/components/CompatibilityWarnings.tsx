@@ -18,7 +18,8 @@ function severityLabel(
 
 /**
  * Advisory compatibility banners — never block simulation or cover controls.
- * Placed directly under the sticky Projected Outcome summary.
+ * Rendered under the Sticky Workspace Header; not sticky themselves so they
+ * do not dominate the viewport while scrolling.
  */
 export function CompatibilityWarnings({
   warnings,
@@ -28,22 +29,23 @@ export function CompatibilityWarnings({
   }
 
   return (
-    <s-stack direction="block" gap="small-200">
+    <s-stack direction="block" gap="small-100">
       {warnings.map((warning) => (
         <s-banner
           key={warning.id}
           tone={bannerTone(warning.severity)}
-          heading={`${severityLabel(warning.severity)} · ${warning.heading}`}
+          heading={severityLabel(warning.severity)}
         >
-          <s-stack direction="block" gap="small-200">
-            <s-text type="strong">Currently active</s-text>
+          <s-stack direction="block" gap="small-100">
+            <s-text type="strong">{warning.heading}</s-text>
+            <s-text color="subdued">Currently active</s-text>
             <s-unordered-list>
               {warning.strategyLabels.map((label) => (
                 <s-list-item key={label}>{label}</s-list-item>
               ))}
             </s-unordered-list>
             <s-text>{warning.rationale}</s-text>
-            <s-text>{warning.calculatedNote}</s-text>
+            <s-text color="subdued">{warning.calculatedNote}</s-text>
             <s-text>{warning.recommendation}</s-text>
           </s-stack>
         </s-banner>

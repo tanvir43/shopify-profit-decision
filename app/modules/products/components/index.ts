@@ -11,5 +11,5 @@ export { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
 export { TrackedProductsEmptyState } from "./TrackedProductsEmptyState";
 export { OnboardingChoiceCard } from "./OnboardingChoiceCard";
 export { CompatibilityWarnings } from "./CompatibilityWarnings";
-export { ProjectedOutcomeBar } from "./ProjectedOutcomeBar";
+export { StickyWorkspaceHeader } from "./StickyWorkspaceHeader";
 export { StrategyControls } from "./StrategyControls";

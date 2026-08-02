@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { getCurrencyDisplay } from "~/modules/cost-profiles/lib/formatCurrency";
+
 import {
   getStrategyDefinition,
   listLibraryStrategies,
@@ -24,6 +26,9 @@ type StrategyControlsProps = {
 };
 
 const STRATEGY_LIBRARY_MODAL_ID = "strategy-library-modal";
+
+/** Shared width for strategy numeric inputs — consistent across all strategies. */
+const NUMERIC_FIELD_MAX_WIDTH = "320px";
 
 function readEventValue(event: Event): string {
   const currentTarget = event.currentTarget as { value?: string } | null;
@@ -54,6 +59,53 @@ function readChoiceValues(event: Event): string[] {
   return [];
 }
 
+type StrategyNumericFieldProps = {
+  label: string;
+  name: string;
+  value: string;
+  prefix?: string;
+  suffix?: string;
+  disabled?: boolean;
+  error?: string;
+  onValueChange: (value: string) => void;
+};
+
+/**
+ * Shared numeric strategy input — same width, spacing, and empty behavior.
+ * Empty value renders a clean blank field (no placeholder text).
+ */
+function StrategyNumericField({
+  label,
+  name,
+  value,
+  prefix,
+  suffix,
+  disabled,
+  error,
+  onValueChange,
+}: StrategyNumericFieldProps) {
+  return (
+    <s-box maxInlineSize={NUMERIC_FIELD_MAX_WIDTH} inlineSize="100%">
+      <s-text-field
+        label={label}
+        name={name}
+        value={value}
+        prefix={prefix}
+        suffix={suffix}
+        disabled={disabled}
+        error={error}
+        autocomplete="off"
+        onInput={(event: Event) => {
+          onValueChange(readEventValue(event));
+        }}
+        onChange={(event: Event) => {
+          onValueChange(readEventValue(event));
+        }}
+      />
+    </s-box>
+  );
+}
+
 function StrategyRow({
   title,
   onRemove,
@@ -64,8 +116,8 @@ function StrategyRow({
   children: ReactNode;
 }) {
   return (
-    <s-box padding="small" borderWidth="base" borderRadius="base">
-      <s-stack direction="block" gap="small-200">
+    <s-box padding="small-100" borderWidth="base" borderRadius="base">
+      <s-stack direction="block" gap="small-100">
         <s-stack
           direction="inline"
           gap="small-200"
@@ -94,15 +146,15 @@ type FieldPatch = <K extends StrategyId>(
 ) => void;
 
 type StrategyControlRenderer = (args: {
-  currency: string;
+  currencyPrefix: string;
   fields: StrategyFieldMap;
   patch: FieldPatch;
 }) => ReactNode;
 
 const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
   {
-    discount: ({ currency, fields, patch }) => (
-      <s-stack direction="block" gap="small-200">
+    discount: ({ currencyPrefix, fields, patch }) => (
+      <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Discount Type"
           name="discountType"
@@ -117,23 +169,20 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           <s-choice value="percentage">Percentage</s-choice>
           <s-choice value="fixed">Fixed Amount</s-choice>
         </s-choice-list>
-        <s-text-field
-          label="Discount Value"
+        <StrategyNumericField
+          label="Discount"
           name="discountValue"
           value={fields.discount.value}
-          prefix={fields.discount.type === "fixed" ? currency : undefined}
+          prefix={fields.discount.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.discount.type === "percentage" ? "%" : undefined}
-          onInput={(event: Event) => {
-            patch("discount", { value: readEventValue(event) });
-          }}
-          onChange={(event: Event) => {
-            patch("discount", { value: readEventValue(event) });
+          onValueChange={(value) => {
+            patch("discount", { value });
           }}
         />
       </s-stack>
     ),
 
-    free_shipping: ({ currency, fields, patch }) => {
+    free_shipping: ({ currencyPrefix, fields, patch }) => {
       const enabled = fields.free_shipping.enabled;
       const shippingValidation = enabled
         ? validateShippingCost(fields.free_shipping.shippingCost)
@@ -144,7 +193,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           : undefined;
 
       return (
-        <s-stack direction="block" gap="small-200">
+        <s-stack direction="block" gap="small-100">
           <s-checkbox
             label="Offer Free Shipping"
             name="freeShipping"
@@ -153,45 +202,40 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
               patch("free_shipping", { enabled: readChecked(event) });
             }}
           />
-          <s-text-field
+          <StrategyNumericField
             label="Shipping Cost"
             name="shippingCost"
             value={fields.free_shipping.shippingCost}
-            prefix={currency}
+            prefix={currencyPrefix}
             disabled={!enabled}
             error={shippingCostError}
-            onInput={(event: Event) => {
-              patch("free_shipping", { shippingCost: readEventValue(event) });
-            }}
-            onChange={(event: Event) => {
-              patch("free_shipping", { shippingCost: readEventValue(event) });
+            onValueChange={(value) => {
+              patch("free_shipping", { shippingCost: value });
             }}
           />
-          <s-text color="subdued">
-            This amount will be deducted from your projected profit when Free
-            Shipping is enabled.
-          </s-text>
+          {enabled ? (
+            <s-text color="subdued">
+              Deducted from projected profit when Free Shipping is on.
+            </s-text>
+          ) : null}
         </s-stack>
       );
     },
 
-    bundle_offer: ({ currency, fields, patch }) => (
-      <s-text-field
+    bundle_offer: ({ currencyPrefix, fields, patch }) => (
+      <StrategyNumericField
         label="Bundle Price"
         name="bundlePrice"
         value={fields.bundle_offer.bundlePrice}
-        prefix={currency}
-        onInput={(event: Event) => {
-          patch("bundle_offer", { bundlePrice: readEventValue(event) });
-        }}
-        onChange={(event: Event) => {
-          patch("bundle_offer", { bundlePrice: readEventValue(event) });
+        prefix={currencyPrefix}
+        onValueChange={(value) => {
+          patch("bundle_offer", { bundlePrice: value });
         }}
       />
     ),
 
-    coupon: ({ currency, fields, patch }) => (
-      <s-stack direction="block" gap="small-200">
+    coupon: ({ currencyPrefix, fields, patch }) => (
+      <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Coupon Type"
           name="couponType"
@@ -206,24 +250,21 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           <s-choice value="percentage">Percentage</s-choice>
           <s-choice value="fixed">Fixed Amount</s-choice>
         </s-choice-list>
-        <s-text-field
-          label="Coupon Value"
+        <StrategyNumericField
+          label="Coupon"
           name="couponValue"
           value={fields.coupon.value}
-          prefix={fields.coupon.type === "fixed" ? currency : undefined}
+          prefix={fields.coupon.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.coupon.type === "percentage" ? "%" : undefined}
-          onInput={(event: Event) => {
-            patch("coupon", { value: readEventValue(event) });
-          }}
-          onChange={(event: Event) => {
-            patch("coupon", { value: readEventValue(event) });
+          onValueChange={(value) => {
+            patch("coupon", { value });
           }}
         />
       </s-stack>
     ),
 
-    cashback: ({ currency, fields, patch }) => (
-      <s-stack direction="block" gap="small-200">
+    cashback: ({ currencyPrefix, fields, patch }) => (
+      <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Cashback Type"
           name="cashbackType"
@@ -238,17 +279,14 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           <s-choice value="percentage">Percentage</s-choice>
           <s-choice value="fixed">Fixed Amount</s-choice>
         </s-choice-list>
-        <s-text-field
-          label="Cashback Value"
+        <StrategyNumericField
+          label="Cashback"
           name="cashbackValue"
           value={fields.cashback.value}
-          prefix={fields.cashback.type === "fixed" ? currency : undefined}
+          prefix={fields.cashback.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.cashback.type === "percentage" ? "%" : undefined}
-          onInput={(event: Event) => {
-            patch("cashback", { value: readEventValue(event) });
-          }}
-          onChange={(event: Event) => {
-            patch("cashback", { value: readEventValue(event) });
+          onValueChange={(value) => {
+            patch("cashback", { value });
           }}
         />
       </s-stack>
@@ -256,102 +294,81 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
 
     buy_x_get_y: ({ fields, patch }) => (
       <s-stack direction="inline" gap="small-200">
-        <s-text-field
+        <StrategyNumericField
           label="Buy"
           name="buyQty"
           value={fields.buy_x_get_y.buyQty}
-          onInput={(event: Event) => {
-            patch("buy_x_get_y", { buyQty: readEventValue(event) });
-          }}
-          onChange={(event: Event) => {
-            patch("buy_x_get_y", { buyQty: readEventValue(event) });
+          onValueChange={(value) => {
+            patch("buy_x_get_y", { buyQty: value });
           }}
         />
-        <s-text-field
+        <StrategyNumericField
           label="Get Free"
           name="getQty"
           value={fields.buy_x_get_y.getQty}
-          onInput={(event: Event) => {
-            patch("buy_x_get_y", { getQty: readEventValue(event) });
-          }}
-          onChange={(event: Event) => {
-            patch("buy_x_get_y", { getQty: readEventValue(event) });
+          onValueChange={(value) => {
+            patch("buy_x_get_y", { getQty: value });
           }}
         />
       </s-stack>
     ),
 
     flash_sale: ({ fields, patch }) => (
-      <s-text-field
+      <StrategyNumericField
         label="Percent Off"
         name="flashSalePercent"
         value={fields.flash_sale.percentOff}
         suffix="%"
-        onInput={(event: Event) => {
-          patch("flash_sale", { percentOff: readEventValue(event) });
-        }}
-        onChange={(event: Event) => {
-          patch("flash_sale", { percentOff: readEventValue(event) });
+        onValueChange={(value) => {
+          patch("flash_sale", { percentOff: value });
         }}
       />
     ),
 
-    referral_bonus: ({ currency, fields, patch }) => (
-      <s-text-field
+    referral_bonus: ({ currencyPrefix, fields, patch }) => (
+      <StrategyNumericField
         label="Bonus Amount"
         name="referralBonus"
         value={fields.referral_bonus.amount}
-        prefix={currency}
-        onInput={(event: Event) => {
-          patch("referral_bonus", { amount: readEventValue(event) });
-        }}
-        onChange={(event: Event) => {
-          patch("referral_bonus", { amount: readEventValue(event) });
+        prefix={currencyPrefix}
+        onValueChange={(value) => {
+          patch("referral_bonus", { amount: value });
         }}
       />
     ),
 
     quantity_discount: ({ fields, patch }) => (
-      <s-text-field
+      <StrategyNumericField
         label="Percent Off"
         name="quantityDiscountPercent"
         value={fields.quantity_discount.percentOff}
         suffix="%"
-        onInput={(event: Event) => {
-          patch("quantity_discount", { percentOff: readEventValue(event) });
-        }}
-        onChange={(event: Event) => {
-          patch("quantity_discount", { percentOff: readEventValue(event) });
+        onValueChange={(value) => {
+          patch("quantity_discount", { percentOff: value });
         }}
       />
     ),
 
-    gift_with_purchase: ({ currency, fields, patch }) => (
-      <s-text-field
+    gift_with_purchase: ({ currencyPrefix, fields, patch }) => (
+      <StrategyNumericField
         label="Gift Cost"
         name="giftCost"
         value={fields.gift_with_purchase.giftCost}
-        prefix={currency}
-        onInput={(event: Event) => {
-          patch("gift_with_purchase", { giftCost: readEventValue(event) });
-        }}
-        onChange={(event: Event) => {
-          patch("gift_with_purchase", { giftCost: readEventValue(event) });
+        prefix={currencyPrefix}
+        onValueChange={(value) => {
+          patch("gift_with_purchase", { giftCost: value });
         }}
       />
     ),
 
     loyalty_reward: ({ fields, patch }) => (
-      <s-text-field
+      <StrategyNumericField
         label="Reward Percent"
         name="loyaltyPercent"
         value={fields.loyalty_reward.percent}
         suffix="%"
-        onInput={(event: Event) => {
-          patch("loyalty_reward", { percent: readEventValue(event) });
-        }}
-        onChange={(event: Event) => {
-          patch("loyalty_reward", { percent: readEventValue(event) });
+        onValueChange={(value) => {
+          patch("loyalty_reward", { percent: value });
         }}
       />
     ),
@@ -367,6 +384,7 @@ export function StrategyControls({
   values,
   onChange,
 }: StrategyControlsProps) {
+  const currencyPrefix = getCurrencyDisplay(currency);
   const patch: FieldPatch = (strategyId, partial) => {
     onChange(patchStrategyFields(values, strategyId, partial));
   };
@@ -374,7 +392,7 @@ export function StrategyControls({
   const libraryStrategies = listLibraryStrategies(values.activeIds);
 
   return (
-    <s-stack direction="block" gap="small-200">
+    <s-stack direction="block" gap="small-100">
       {values.activeIds.map((strategyId) => {
         const definition = getStrategyDefinition(strategyId);
         const renderControls = STRATEGY_CONTROL_RENDERERS[strategyId];
@@ -387,7 +405,11 @@ export function StrategyControls({
               onChange(removeStrategy(values, strategyId));
             }}
           >
-            {renderControls({ currency, fields: values.fields, patch })}
+            {renderControls({
+              currencyPrefix,
+              fields: values.fields,
+              patch,
+            })}
           </StrategyRow>
         );
       })}
@@ -397,7 +419,7 @@ export function StrategyControls({
         commandFor={STRATEGY_LIBRARY_MODAL_ID}
         command="--show"
       >
-        + Add Strategy
+        Add Strategy
       </s-button>
 
       <s-modal
@@ -406,9 +428,8 @@ export function StrategyControls({
         size="base"
       >
         <s-stack direction="block" gap="small-200">
-          <s-paragraph>
-            Choose a predefined business decision strategy to add to this
-            simulation.
+          <s-paragraph color="subdued">
+            Choose a strategy to add to this simulation.
           </s-paragraph>
 
           {libraryStrategies.length === 0 ? (
@@ -419,7 +440,7 @@ export function StrategyControls({
             libraryStrategies.map((strategy) => (
               <s-box
                 key={strategy.id}
-                padding="small"
+                padding="small-100"
                 borderWidth="base"
                 borderRadius="base"
               >

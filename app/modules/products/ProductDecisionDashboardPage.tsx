@@ -5,7 +5,7 @@ import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency
 import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileMode";
 
 import { CompatibilityWarnings } from "./components/CompatibilityWarnings";
-import { ProjectedOutcomeBar } from "./components/ProjectedOutcomeBar";
+import { StickyWorkspaceHeader } from "./components/StickyWorkspaceHeader";
 import { StrategyControls } from "./components/StrategyControls";
 import {
   detailedSetupHref,
@@ -37,22 +37,11 @@ type ProductDecisionDashboardPageProps = {
   data: ProductDecisionDashboardData;
 };
 
-function formatSellingPriceDisplay(
-  amount: string,
-  currency: string,
-): string {
-  const value = Number(amount);
-  if (!Number.isFinite(value)) {
-    return `${currency} ${amount}`;
-  }
-
-  return `${currency} ${value.toFixed(2)}`;
-}
-
 /**
- * Decision Workspace — live strategy simulation (PP-0015.2 / PP-0015.3).
+ * Decision Workspace — live strategy simulation (PP-0015.2 / PP-0015.3 / PP-0015.6).
  * Strategy inputs are ephemeral; every active strategy feeds one projection
  * pipeline. Compatibility analysis runs after simulation and never blocks it.
+ * Sticky Workspace Header keeps product + outcome essentials visible while scrolling.
  */
 export function ProductDecisionDashboardPage({
   data,
@@ -87,7 +76,7 @@ export function ProductDecisionDashboardPage({
   const costDisplay =
     totalCost != null
       ? formatCurrencyAmount(totalCost, currency)
-      : "Not Available";
+      : "—";
 
   const thumbnailAlt =
     imageUrl && imageAlt
@@ -101,10 +90,13 @@ export function ProductDecisionDashboardPage({
     : "Edit Cost Breakdown";
 
   const hasSellingPrice = sellingPrice != null && sellingPrice !== "";
+  const sellingPriceDisplay = hasSellingPrice
+    ? formatCurrencyAmount(sellingPrice, currency)
+    : "—";
 
   return (
     <PageLayout title={productTitle}>
-      <s-stack direction="block" gap="large-200">
+      <s-stack direction="block" gap="large-100">
         <ProductSummarySection
           productTitle={productTitle}
           statusLabel={statusLabel}
@@ -112,24 +104,22 @@ export function ProductDecisionDashboardPage({
           imageUrl={imageUrl}
           thumbnailAlt={thumbnailAlt}
           costDisplay={costDisplay}
-          sellingPriceDisplay={
-            hasSellingPrice
-              ? formatSellingPriceDisplay(sellingPrice, currency)
-              : "Not Set"
-          }
+          sellingPriceDisplay={sellingPriceDisplay}
           sellingPriceHref={sellingPriceHref(trackedProductId)}
           sellingPriceLabel={
             hasSellingPrice ? "Edit Selling Price" : "Set Selling Price"
           }
         />
 
-        <ProjectedOutcomeBar
+        <StickyWorkspaceHeader
+          productTitle={productTitle}
+          costDisplay={costDisplay}
+          sellingPriceDisplay={sellingPriceDisplay}
           outcome={outcome}
           currency={currency}
-          belowSummary={
-            <CompatibilityWarnings warnings={compatibilityWarnings} />
-          }
         />
+
+        <CompatibilityWarnings warnings={compatibilityWarnings} />
 
         <StrategiesSection
           currency={currency}
@@ -186,11 +176,11 @@ function ProductSummarySection({
 
         <s-stack direction="inline" gap="large-100" alignItems="end">
           <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">Current Product Cost</s-text>
+            <s-text color="subdued">Product Cost</s-text>
             <s-text type="strong">{costDisplay}</s-text>
           </s-stack>
           <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">Current Selling Price</s-text>
+            <s-text color="subdued">Selling Price</s-text>
             <s-text type="strong">{sellingPriceDisplay}</s-text>
           </s-stack>
           <s-button href={priceHref} variant="secondary">
@@ -212,11 +202,11 @@ function StrategiesSection({
   onStrategiesChange: (next: StrategyInputs) => void;
 }) {
   return (
-    <s-section heading="Strategies">
+    <s-section heading="Decision Strategies">
       <s-stack direction="block" gap="small-200">
-        <s-paragraph>
-          Adjust strategies below to simulate business outcomes for this
-          product. Changes update the projected outcome immediately.
+        <s-paragraph color="subdued">
+          Adjust strategies to simulate outcomes. The summary updates as you
+          type.
         </s-paragraph>
         <StrategyControls
           currency={currency}
@@ -242,11 +232,11 @@ function ProductCostingSection({
   return (
     <s-section heading="Product Costing">
       <s-stack direction="block" gap="base">
-        <s-box padding="large-100" borderWidth="base" borderRadius="base">
+        <s-box padding="base" borderWidth="base" borderRadius="base">
           <s-stack direction="block" gap="base">
-            <s-stack direction="block" gap="small-200">
+            <s-stack direction="block" gap="small-100">
               <s-heading>Want more accurate recommendations?</s-heading>
-              <s-paragraph>
+              <s-paragraph color="subdued">
                 Break your total cost into individual cost components for more
                 precise pricing insights.
               </s-paragraph>

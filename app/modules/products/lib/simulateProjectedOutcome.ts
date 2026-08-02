@@ -244,13 +244,12 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
     if (buyQty == null || getQty == null) {
       return draft;
     }
+    // Order-level: pay for Buy qty; fulfill Buy + Free at full unit cost.
     const totalUnits = buyQty + getQty;
-    // Customer pays for buyQty share of the current revenue; free units add cost.
-    const paidShare = buyQty / totalUnits;
     return {
       ...draft,
-      revenue: draft.revenue * paidShare,
-      cost: draft.cost + draft.unitCost * getQty,
+      revenue: draft.revenue * buyQty,
+      cost: draft.cost + draft.unitCost * (totalUnits - 1),
     };
   },
 
@@ -389,7 +388,7 @@ export function formatProfitLoss(
   currency: string,
 ): string {
   if (amount == null || !Number.isFinite(amount)) {
-    return "--";
+    return "—";
   }
 
   const absolute = Math.abs(amount);
@@ -415,7 +414,7 @@ export function formatProfitLoss(
 
 export function formatMarginPercent(marginPercent: number | null): string {
   if (marginPercent == null || !Number.isFinite(marginPercent)) {
-    return "--";
+    return "—";
   }
 
   return `${marginPercent.toFixed(1)}%`;

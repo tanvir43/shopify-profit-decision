@@ -92,6 +92,14 @@ Compatibility warnings analyse only field-active strategies (numeric value > 0, 
 
 Free Shipping is a merchant decision (checkbox) with a Shipping Cost input for the monetary impact. Cost input stays visible but disabled while unchecked; enabled Free Shipping deducts the merchant-entered amount from projected profit. Live recalculation, validation when enabled, no Product Costing / schema changes.
 
+### PP-0015.6 — Decision Workspace UX Polish
+
+Polish Decision Workspace for MVP usability: clear section hierarchy (Product Summary → sticky Projected Outcome → Decision Strategies → Product Costing), consistent short labels, uniform numeric inputs, denser strategy settings, sticky summary clearance, subdued compatibility warnings, responsive and accessible controls. UI polish only — no calculation, engine, persistence, or routing changes.
+
+### PP-0015.6.1 — Restore Sticky Projected Outcome
+
+Restore sticky Projected Outcome after PP-0015.6 regression: summary must remain visible while editing strategies. Fix containing-block layout only — no redesign, calculation, strategy control, or warning-system changes.
+
 ---
 
 ## Upcoming
