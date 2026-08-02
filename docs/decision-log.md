@@ -14,6 +14,8 @@ Each entry is an Architecture Decision Record (ADR). ADRs are append-only in spi
 | [ADR-004](#adr-004--enum-based-cost-categories-with-custom) | Enum-based Cost Categories with CUSTOM | 2026-07-28 | PP-0003-R1 | Accepted |
 | [ADR-005](#adr-005--product-scoped-cost-profile-url-without-products-layout-nesting) | Product-scoped Cost Profile URL without Products layout nesting | 2026-07-28 | PP-0007 | Accepted |
 | [ADR-006](#adr-006--cost-profile-merchant-ui-simplicity) | Cost Profile merchant UI simplicity | 2026-07-28 | PP-0008 | Accepted |
+| [ADR-007](#adr-007--costitemtype-maps-to-costcategory) | CostItemType maps to CostCategory | 2026-07-30 | PP-0013 | Accepted |
+| [ADR-008](#adr-008--strategy-compatibility-warnings-never-block-simulation) | Strategy compatibility warnings never block simulation | 2026-08-02 | PP-0015.3 | Accepted |
 
 ---
 
@@ -228,3 +230,77 @@ Merchants need orientation before configuration. Counts answer “have I started
 - `Configured` means at least one cost item exists; `Not Configured` means the list is empty.
 - Editing flows wire into the existing CTA slots later — do not add secondary “edit” chrome on list rows until needed.
 - Prefer list/card rows (name, category, type, active badge) over tables for read-only cost lines.
+
+---
+
+## ADR-007 — CostItemType maps to CostCategory
+
+| Field | Value |
+| --- | --- |
+| **ADR ID** | ADR-007 |
+| **Date** | 2026-07-30 |
+| **Prompt ID** | PP-0013 |
+| **Status** | Accepted |
+
+### Decision
+
+Detailed Cost Builder uses a merchant-facing `CostItemType` enum (`PURCHASE`, `PACKAGING`, `SHIPPING`, `PAYMENT_FEES`, `OTHER`). Persistence continues to use `CostCategory` (ADR-004). Mapping:
+
+| CostItemType | CostCategory |
+| --- | --- |
+| PURCHASE | PRODUCT |
+| PACKAGING | PACKAGING |
+| SHIPPING | SHIPPING |
+| PAYMENT_FEES | TRANSACTION |
+| OTHER | CUSTOM |
+
+`CostItem` already exists as the aggregate child; Detailed Setup writes `name`/`value`/`category` (label/amount/type in product language) with `unit: FIXED`. Empty amounts mean “not provided” and omit that line. Saving sets `mode` to `DETAILED` and leaves `totalCost` unchanged.
+
+### Context
+
+PP-0013 names types for merchants (no accounting jargon). Renaming or replacing `CostCategory` in Prisma would churn existing contracts and migrations without changing stored facts. A parallel Prisma enum would duplicate taxonomy.
+
+### Alternatives Considered
+
+1. **Rename Prisma `CostCategory` values** — rejected for MVP; high migration cost for display naming.
+2. **Add a second Prisma enum `CostItemType`** — rejected; two persistence taxonomies for one fact.
+3. **Map CostItemType → CostCategory (chosen)** — keeps ADR-004 storage; merchant UI uses friendlier names.
+
+### Consequences
+
+- UI and Detailed Setup validation speak `CostItemType`; repository/mapper stay on `CostCategory`.
+- Promoting OTHER/CUSTOM or renaming buckets remains an explicit schema + ADR change.
+- Do not invent a second CostItem table or overwrite `totalCost` when entering DETAILED mode.
+
+---
+
+## ADR-008 — Strategy compatibility warnings never block simulation
+
+| Field | Value |
+| --- | --- |
+| **ADR ID** | ADR-008 |
+| **Date** | 2026-08-02 |
+| **Prompt ID** | PP-0015.3 |
+| **Status** | Accepted |
+
+### Decision
+
+The Decision Workspace may advise on uncommon strategy combinations, but **must never** disable, remove, or ignore strategies, or refuse to calculate. Compatibility analysis is a separate layer that runs **after** simulation. Warnings are derived from strategy category metadata and data-driven rules — not hard-coded strategy-name branches. Copy uses advisory language only (`Warning`, `Recommendation`, review guidance); never `Critical`, `Error`, `Blocked`, or `Invalid`.
+
+### Context
+
+ProfitPilot is a simulator. Merchants own pricing decisions; ProfitPilot owns accurate calculation. Stacking multiple Price Adjustment strategies (Discount + Coupon + Bundle) is uncommon but legitimate to explore. Blocking or silently dropping effects would undermine trust in the projection.
+
+### Alternatives Considered
+
+1. **Disable conflicting strategies in the UI** — rejected; prevents exploration.
+2. **Hard-code messages naming Bundle / Discount / Coupon** — rejected; brittle when the library grows.
+3. **Post-simulation metadata-driven warnings (chosen)** — preserves full math; educates via dynamic active-strategy lists.
+
+### Consequences
+
+- Pipeline: Strategy Inputs → Simulation Engine → Profit / Loss → Compatibility Analysis → Warning UI.
+- New strategies need a catalog `category` and an activation rule (`strategyActivation.ts`); new rules register in `COMPATIBILITY_RULES` without touching profit formulas.
+- Compatibility analysis asks each workspace strategy whether it is field-active (value > 0 / checked) before grouping by category — workspace membership alone does not trigger warnings (PP-0015.3.1).
+- Categories stay internal metadata — not shown as UI chips.
+- Simulation, profit/margin formulas, and Product Costing remain unchanged by this layer.

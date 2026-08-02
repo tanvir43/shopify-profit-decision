@@ -10,3 +10,6 @@ export { TrackedProductRow } from "./TrackedProductRow";
 export { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
 export { TrackedProductsEmptyState } from "./TrackedProductsEmptyState";
 export { OnboardingChoiceCard } from "./OnboardingChoiceCard";
+export { CompatibilityWarnings } from "./CompatibilityWarnings";
+export { ProjectedOutcomeBar } from "./ProjectedOutcomeBar";
+export { StrategyControls } from "./StrategyControls";

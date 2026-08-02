@@ -3,6 +3,7 @@ import type { CostCategory } from "../types/CostCategory";
 import type { CostItem } from "../types/CostItem";
 import type { CostItemInput, CostProfilePersist } from "../types/CostProfileInputs";
 import type { CostProfile } from "../types/CostProfile";
+import type { CostProfileMode } from "../types/CostProfileMode";
 import type { CostUnit } from "../types/CostUnit";
 import type { CostProfileMapper } from "./costProfileMapper";
 
@@ -18,6 +19,9 @@ export type CostProfileWriteModel = {
   shop: string;
   productId: string;
   currency: string;
+  mode: CostProfileMode;
+  totalCost: string | null;
+  sellingPrice: string | null;
   notes: string | null;
   items: CostItemWriteModel[];
 };
@@ -35,6 +39,12 @@ export type CostItemWriteModel = {
 
 function decimalToString(value: { toString(): string }): string {
   return value.toString();
+}
+
+function nullableDecimalToString(
+  value: { toString(): string } | null | undefined,
+): string | null {
+  return value != null ? value.toString() : null;
 }
 
 function toItemWriteModel(item: CostItemInput): CostItemWriteModel {
@@ -66,6 +76,9 @@ export const prismaCostProfileMapper: CostProfileMapper = {
       shop: profile.shop,
       productId: profile.productId,
       currency: profile.currency,
+      mode: profile.mode,
+      totalCost: nullableDecimalToString(profile.totalCost),
+      sellingPrice: nullableDecimalToString(profile.sellingPrice),
       notes: profile.notes,
       items: profile.items.map((item) =>
         prismaCostProfileMapper.toDomainItem(item),
@@ -95,6 +108,9 @@ export const prismaCostProfileMapper: CostProfileMapper = {
       shop: profile.shop,
       productId: profile.productId,
       currency: profile.currency,
+      mode: profile.mode ?? "DETAILED",
+      totalCost: profile.totalCost ?? null,
+      sellingPrice: profile.sellingPrice ?? null,
       notes: profile.notes,
       items: profile.items.map(toItemWriteModel),
     };

@@ -212,6 +212,9 @@ export function createCostProfileService(
         shop: input.shop,
         productId: input.productId,
         currency: input.currency,
+        mode: "DETAILED",
+        totalCost: null,
+        sellingPrice: null,
         notes: null,
         items: [],
       };
@@ -240,6 +243,9 @@ export function createCostProfileService(
         shop: existing.shop,
         productId: existing.productId,
         currency,
+        mode: existing.mode,
+        totalCost: existing.totalCost,
+        sellingPrice: existing.sellingPrice,
         notes,
         items: toItemInputs(existing.items),
       });
@@ -260,6 +266,9 @@ export function createCostProfileService(
         shop: existing.shop,
         productId: existing.productId,
         currency: existing.currency,
+        mode: existing.mode,
+        totalCost: existing.totalCost,
+        sellingPrice: existing.sellingPrice,
         notes: existing.notes,
         items: normalized,
       });

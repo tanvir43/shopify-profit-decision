@@ -22,15 +22,28 @@ export {
 } from "./repositories";
 export {
   createCostProfileService,
+  createDetailedSetupService,
+  createSellingPriceService,
   type CostProfileService,
+  type DetailedSetupService,
+  type SaveDetailedBreakdownInput,
+  type SellingPriceService,
 } from "./services";
 export type {
   CostCategory,
   CostItem,
   CostItemInput,
+  CostItemType,
   CostProfile,
   CostProfilePersist,
   CostUnit,
   EnsureCostProfileInput,
   UpdateCostProfileMetaInput,
+} from "./types";
+export {
+  COST_ITEM_TYPES,
+  COST_ITEM_TYPE_LABELS,
+  COST_ITEM_TYPE_SORT_ORDER,
+  categoryToCostItemType,
+  costItemTypeToCategory,
 } from "./types";

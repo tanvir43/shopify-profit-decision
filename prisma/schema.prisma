@@ -71,6 +71,12 @@ enum CostCategory {
   CUSTOM
 }
 
+/// How a merchant entered cost data for this profile.
+enum CostProfileMode {
+  QUICK_START
+  DETAILED
+}
+
 /// One cost profile per Shopify product within a shop.
 /// Future modules attach pricing/discount/break-even decisions to this profile
 /// rather than inventing parallel cost trees.
@@ -82,6 +88,12 @@ model CostProfile {
   productId String
   /// ISO 4217 currency code governing FIXED CostItem values (e.g. "USD").
   currency  String
+  /// How cost data was entered — quick total vs detailed breakdown.
+  mode      CostProfileMode @default(DETAILED)
+  /// Merchant-entered total product cost (Quick Start). Optional for DETAILED.
+  totalCost Decimal?        @db.Decimal(19, 6)
+  /// Merchant-entered current selling price. Optional until set.
+  sellingPrice Decimal?     @db.Decimal(19, 6)
   /// Free-form merchant notes about this product's cost structure.
   notes     String?
   createdAt DateTime @default(now())

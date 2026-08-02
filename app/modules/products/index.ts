@@ -6,8 +6,26 @@ export {
   ProductOnboardingPage,
   type ProductOnboardingPageData,
 } from "./ProductOnboardingPage";
-export { QuickStartPage } from "./QuickStartPage";
-export { DetailedSetupPage } from "./DetailedSetupPage";
+export {
+  ProductDecisionDashboardPage,
+  type ProductDecisionDashboardData,
+} from "./ProductDecisionDashboardPage";
+export {
+  QuickStartPage,
+  type QuickStartActionData,
+  type QuickStartPageData,
+} from "./QuickStartPage";
+export {
+  DetailedSetupPage,
+  emptyAmounts,
+  type DetailedSetupActionData,
+  type DetailedSetupPageData,
+} from "./DetailedSetupPage";
+export {
+  SellingPricePage,
+  type SellingPriceActionData,
+  type SellingPricePageData,
+} from "./SellingPricePage";
 export {
   ProductList,
   ProductListEmptyState,

@@ -7,6 +7,7 @@ import {
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { PageLayout } from "~/components/PageLayout";
+import { resolveShopCurrency } from "~/lib/shopCurrency.server";
 import {
   CostProfileNotFoundError,
   CostProfilePage,
@@ -36,32 +37,6 @@ function toPageData(profile: CostProfile): CostProfilePageData {
     activeCostItems: items.filter((item) => item.isActive).length,
     items,
   };
-}
-
-async function resolveShopCurrency(
-  admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"],
-): Promise<string> {
-  const response = await admin.graphql(
-    `#graphql
-      query CostProfileShopCurrency {
-        shop {
-          currencyCode
-        }
-      }
-    `,
-  );
-  const json = (await response.json()) as {
-    data?: { shop?: { currencyCode?: string } };
-  };
-  const currencyCode = json.data?.shop?.currencyCode;
-
-  if (!currencyCode) {
-    throw new Response("Unable to resolve shop currency from Shopify.", {
-      status: 502,
-    });
-  }
-
-  return currencyCode;
 }
 
 /**

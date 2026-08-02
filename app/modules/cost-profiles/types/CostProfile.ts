@@ -1,4 +1,5 @@
 import type { CostItem } from "./CostItem";
+import type { CostProfileMode } from "./CostProfileMode";
 
 /**
  * Aggregate root: one cost structure per Shopify product within a shop.
@@ -9,6 +10,9 @@ export type CostProfile = {
   shop: string;
   productId: string;
   currency: string;
+  mode: CostProfileMode;
+  totalCost: string | null;
+  sellingPrice: string | null;
   notes: string | null;
   items: CostItem[];
   createdAt: Date;

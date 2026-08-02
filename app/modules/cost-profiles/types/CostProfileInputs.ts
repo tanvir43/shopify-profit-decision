@@ -1,4 +1,5 @@
 import type { CostCategory } from "./CostCategory";
+import type { CostProfileMode } from "./CostProfileMode";
 import type { CostUnit } from "./CostUnit";
 
 export type EnsureCostProfileInput = {
@@ -38,6 +39,22 @@ export type CostProfilePersist = {
   shop: string;
   productId: string;
   currency: string;
+  mode?: CostProfileMode;
+  totalCost?: string | null;
+  sellingPrice?: string | null;
   notes: string | null;
   items: CostItemInput[];
+};
+
+export type CreateQuickStartCostProfileInput = {
+  shop: string;
+  productId: string;
+  currency: string;
+  totalCost?: string | null;
+};
+
+export type OpenQuickStartInput = {
+  shop: string;
+  productId: string;
+  currency: string;
 };

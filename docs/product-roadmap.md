@@ -48,17 +48,55 @@ Tracked Products Workspace: `TrackedProduct` reference model (no Shopify catalog
 
 Cost Profile onboarding choice screen: product details route (`/app/products/:trackedProductId`), Open action from workspace, two-path onboarding UI, placeholder Quick Start and Detailed Setup routes. DB-only loader; no Cost Profile creation or Shopify calls.
 
+### PP-0012
+
+Quick Start cost entry: open/create `QUICK_START` profile, single total cost input, save `totalCost`, product details summary with Edit Total Cost.
+
+### PP-0013
+
+Detailed Cost Builder foundation: `CostItemType` taxonomy (mapped to `CostCategory`), five-category breakdown form, Break Down My Costs CTA, save CostItems and transition mode to `DETAILED` without changing `totalCost` or calculating totals.
+
+### PP-0014
+
+Decision Dashboard MVP: replace post–Quick Start / Detailed summary screens with a product Decision Dashboard (header via Shopify enrichment, cost summary, Pricing Decisions placeholder, Improve Accuracy / Edit Cost Breakdown, Edit Total Cost). No Decision Engine, profit, margin, or selling price.
+
+### PP-0015 (Selling Price Setup)
+
+Selling Price Setup: nullable `sellingPrice` on CostProfile, `updateSellingPrice` / `saveSellingPrice`, Selling Price page, Product Overview Current Selling Price card (replaces Pricing Decisions placeholder). Collect and persist only — no Decision Engine, margin, or calculations.
+
+### PP-0014 — Complete Selling Price Flow
+
+Finish Selling Price workflow only: reliable save (input sync + persist + redirect to Product Overview), edit prefill, Overview Current Selling Price (`Not Set` / shop-currency amount) with Set/Edit CTAs, validation and error preservation. No Decision Simulator, strategies, profit, or Product Costing changes.
+
+### PP-0015 — Decision Workspace Foundation
+
+Reorganize Product Overview into Decision Workspace: Product Summary, Projected Outcome placeholder, predefined Strategy cards (Configure inert), Product Costing section at bottom. UI foundation only — no Decision Engine, strategy logic, or calculations.
+
+### PP-0015.1 — Decision Workspace UX Refinement
+
+Refine Decision Workspace interaction model: remove Configure buttons, always-visible strategy controls with automatic activation, real-time client projection on every change, sticky Profit / Loss summary bar, status Profit / Loss. No persistence, history, or new business features.
+
+### PP-0015.2 — Decision Workspace Refinement
+
+Unify live simulation across all strategies; replace Facebook Ads / Festival Campaign with Coupon + Cashback; compact strategy settings layout; + Add Strategy with predefined Strategy Library; retain sticky Projected Outcome. No Product Costing / Quick Start changes, persistence, or custom strategy builder.
+
+### PP-0015.3 — Strategy Compatibility Warning System
+
+Advisory compatibility analysis after simulation: strategy category metadata, data-driven rules (e.g. multiple Price Adjustment), dynamic warning copy listing active strategies, Polaris warning below sticky Projected Outcome. Simulation never blocked; no calculation / Product Costing changes.
+
+### PP-0015.3.1 — Active Strategy Detection Fix
+
+Compatibility warnings analyse only field-active strategies (numeric value > 0, Free Shipping checked). Each strategy owns an `isActive` rule; inactive / empty strategies never appear in warning lists. No UI redesign or calculation changes.
+
+### PP-0015.4 — Free Shipping Strategy Refinement
+
+Free Shipping is a merchant decision (checkbox) with a Shipping Cost input for the monetary impact. Cost input stays visible but disabled while unchecked; enabled Free Shipping deducts the merchant-entered amount from projected profit. Live recalculation, validation when enabled, no Product Costing / schema changes.
+
 ---
 
 ## Upcoming
 
-### PP-0012
-
-*(Placeholder — Quick Start cost entry flow.)*
-
-### PP-0013
-
-*(Placeholder — Detailed Cost Builder flow.)*
+*(None scheduled.)*
 
 ---
 

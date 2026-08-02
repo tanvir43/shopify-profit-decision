@@ -45,3 +45,7 @@ export function quickStartHref(trackedProductId: string): string {
 export function detailedSetupHref(trackedProductId: string): string {
   return `/app/products/${encodeURIComponent(trackedProductId)}/detailed-setup`;
 }
+
+export function sellingPriceHref(trackedProductId: string): string {
+  return `/app/products/${encodeURIComponent(trackedProductId)}/selling-price`;
+}

@@ -7,18 +7,22 @@ import {
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { PageLayout } from "~/components/PageLayout";
-import { ProductOnboardingPage } from "~/modules/products";
+import { costProfileService } from "~/modules/cost-profiles/services/costProfileService.server";
+import {
+  ProductDecisionDashboardPage,
+  ProductOnboardingPage,
+} from "~/modules/products";
+import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
 
 /**
- * Tracked product details — cost profile onboarding entry (PP-0011).
+ * Tracked product details — onboarding or Decision Workspace (PP-0011 / PP-0015.2).
  *
  * URL: /app/products/:trackedProductId
- * Loads TrackedProduct from DB only — no Shopify, no Cost Profile.
  */
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   const trackedProductId = params.trackedProductId?.trim();
   if (!trackedProductId) {
@@ -34,13 +38,63 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Tracked product not found.", { status: 404 });
   }
 
+  const profile = await costProfileService.getByProduct(
+    session.shop,
+    tracked.shopifyProductId,
+  );
+
+  if (profile?.mode === "QUICK_START" || profile?.mode === "DETAILED") {
+    let productTitle = tracked.shopifyProductId;
+    let productStatus = "UNKNOWN";
+    let imageUrl: string | null = null;
+    let imageAlt: string | null = null;
+
+    try {
+      const products = await fetchProductsByIds(admin, [
+        tracked.shopifyProductId,
+      ]);
+      const enrichment = products.get(tracked.shopifyProductId);
+
+      if (enrichment) {
+        productTitle = enrichment.title;
+        productStatus = enrichment.status;
+        imageUrl = enrichment.imageUrl;
+        imageAlt = enrichment.imageAlt;
+      } else {
+        productTitle = "Product unavailable";
+        productStatus = "UNAVAILABLE";
+      }
+    } catch {
+      // Keep fallback identity when Shopify enrichment fails.
+    }
+
+    return {
+      view: "dashboard" as const,
+      trackedProductId: tracked.id,
+      mode: profile.mode,
+      productTitle,
+      productStatus,
+      imageUrl,
+      imageAlt,
+      currency: profile.currency,
+      totalCost: profile.totalCost,
+      sellingPrice: profile.sellingPrice,
+    };
+  }
+
   return {
+    view: "onboarding" as const,
     trackedProductId: tracked.id,
   };
 };
 
 export default function ProductDetailsRoute() {
   const data = useLoaderData<typeof loader>();
+
+  if (data.view === "dashboard") {
+    return <ProductDecisionDashboardPage data={data} />;
+  }
+
   return <ProductOnboardingPage data={data} />;
 }
 

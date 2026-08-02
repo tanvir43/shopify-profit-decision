@@ -1,4 +1,8 @@
-import type { CostProfile, CostProfilePersist } from "../types";
+import type {
+  CostProfile,
+  CostProfilePersist,
+  CreateQuickStartCostProfileInput,
+} from "../types";
 
 /**
  * Persistence port for the CostProfile aggregate.
@@ -37,4 +41,38 @@ export interface CostProfileRepository {
    * Consumers: CostProfileService write paths only (ensure, updateMeta, replaceItems)
    */
   save(profile: CostProfilePersist): Promise<CostProfile>;
+
+  /**
+   * Load one profile by shop + Shopify productId (tracked product reference).
+   * Repository-only — no business rules.
+   */
+  getCostProfileByTrackedProductId(
+    shop: string,
+    productId: string,
+  ): Promise<CostProfile | null>;
+
+  /**
+   * Insert a Quick Start profile. Caller ensures no duplicate exists.
+   */
+  createQuickStartCostProfile(
+    input: CreateQuickStartCostProfileInput,
+  ): Promise<CostProfile>;
+
+  /**
+   * Update totalCost on an existing profile. Repository-only — no validation.
+   */
+  updateQuickStartCost(
+    shop: string,
+    productId: string,
+    totalCost: string,
+  ): Promise<CostProfile>;
+
+  /**
+   * Update sellingPrice on an existing profile. Repository-only — no validation.
+   */
+  updateSellingPrice(
+    shop: string,
+    productId: string,
+    sellingPrice: string,
+  ): Promise<CostProfile>;
 }
