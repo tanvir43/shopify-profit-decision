@@ -44,7 +44,12 @@ export type ReferralBonusFields = {
 };
 
 export type QuantityDiscountFields = {
-  percentOff: string;
+  /** Minimum order quantity required before the discount applies. */
+  minQuantity: string;
+  type: DiscountType;
+  value: string;
+  /** Order size used for live threshold simulation. */
+  simulatedQuantity: string;
 };
 
 export type GiftWithPurchaseFields = {
@@ -104,7 +109,12 @@ export const EMPTY_STRATEGY_FIELDS: StrategyFieldMap = {
   buy_x_get_y: { buyQty: "", getQty: "" },
   flash_sale: { percentOff: "" },
   referral_bonus: { amount: "" },
-  quantity_discount: { percentOff: "" },
+  quantity_discount: {
+    minQuantity: "",
+    type: "percentage",
+    value: "",
+    simulatedQuantity: "",
+  },
   gift_with_purchase: { giftCost: "" },
   loyalty_reward: { percent: "" },
 };
@@ -266,13 +276,49 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
     return { ...draft, cost: draft.cost + amount };
   },
 
-  quantity_discount: (draft, fields) => ({
-    ...draft,
-    revenue: applyPercentOff(
+  quantity_discount: (draft, fields) => {
+    const minQuantity = parseOptionalPositiveInt(
+      fields.quantity_discount.minQuantity,
+    );
+    const simulatedQuantity = parseOptionalPositiveInt(
+      fields.quantity_discount.simulatedQuantity,
+    );
+    const discountValue = parseOptionalAmount(fields.quantity_discount.value);
+
+    // Inactive until Minimum Quantity and Discount Value are both set (> 0).
+    if (minQuantity == null || discountValue == null || discountValue <= 0) {
+      return draft;
+    }
+
+    // Simulated qty required to project an order-level outcome.
+    if (simulatedQuantity == null) {
+      return draft;
+    }
+
+    const orderCost = draft.cost + draft.unitCost * (simulatedQuantity - 1);
+
+    // Below threshold — no discount; project the order at the full unit price.
+    if (simulatedQuantity < minQuantity) {
+      return {
+        ...draft,
+        revenue: draft.revenue * simulatedQuantity,
+        cost: orderCost,
+      };
+    }
+
+    // Threshold met — reuse Discount's unit-price reduction, then scale.
+    const unitRevenue = applyMoneyOff(
       draft.revenue,
-      fields.quantity_discount.percentOff,
-    ),
-  }),
+      fields.quantity_discount.type,
+      fields.quantity_discount.value,
+    );
+
+    return {
+      ...draft,
+      revenue: unitRevenue * simulatedQuantity,
+      cost: orderCost,
+    };
+  },
 
   gift_with_purchase: (draft, fields) => {
     const giftCost = parseOptionalAmount(fields.gift_with_purchase.giftCost);

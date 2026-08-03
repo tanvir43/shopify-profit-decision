@@ -92,6 +92,14 @@ Compatibility warnings analyse only field-active strategies (numeric value > 0, 
 
 Free Shipping is a merchant decision (checkbox) with a Shipping Cost input for the monetary impact. Cost input stays visible but disabled while unchecked; enabled Free Shipping deducts the merchant-entered amount from projected profit. Live recalculation, validation when enabled, no Product Costing / schema changes.
 
+### PP-0015.4.2 — Quantity Discount Strategy (Threshold-Based)
+
+Replace Quantity Discount with a threshold-based strategy: Minimum Quantity, Discount Type (percentage / fixed), Discount Value, and Simulated Order Quantity. Discount applies only when simulated qty ≥ minimum; reuses existing `applyMoneyOff` pricing. Independent from Discount strategy — no changes to other strategy calculations.
+
+### PP-0015.4.3 — Improve Quantity Discount UX
+
+Clarify Quantity Discount labels only: “Apply when customer buys at least” (threshold), “Simulation” / “Customer buys” (order size), Discount label aligned with Discount strategy. No calculation, activation, or other-strategy changes.
+
 ### PP-0015.6 — Decision Workspace UX Polish
 
 Polish Decision Workspace for MVP usability: clear section hierarchy (Product Summary → sticky Projected Outcome → Decision Strategies → Product Costing), consistent short labels, uniform numeric inputs, denser strategy settings, sticky summary clearance, subdued compatibility warnings, responsive and accessible controls. UI polish only — no calculation, engine, persistence, or routing changes.

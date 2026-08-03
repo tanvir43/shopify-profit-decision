@@ -47,7 +47,8 @@ const STRATEGY_ACTIVATION: Record<StrategyId, StrategyActivation> = {
   flash_sale: (fields) => hasPositiveAmount(fields.flash_sale.percentOff),
   referral_bonus: (fields) => hasPositiveAmount(fields.referral_bonus.amount),
   quantity_discount: (fields) =>
-    hasPositiveAmount(fields.quantity_discount.percentOff),
+    hasPositiveInt(fields.quantity_discount.minQuantity) &&
+    hasPositiveAmount(fields.quantity_discount.value),
   gift_with_purchase: (fields) =>
     hasPositiveAmount(fields.gift_with_purchase.giftCost),
   loyalty_reward: (fields) => hasPositiveAmount(fields.loyalty_reward.percent),

@@ -17,6 +17,7 @@ import {
   patchStrategyFields,
   removeStrategy,
 } from "../lib/simulateProjectedOutcome";
+import { validatePositiveInteger } from "../lib/validatePositiveInteger";
 import { validateShippingCost } from "../lib/validateShippingCost";
 
 type StrategyControlsProps = {
@@ -337,17 +338,89 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       />
     ),
 
-    quantity_discount: ({ fields, patch }) => (
-      <StrategyNumericField
-        label="Percent Off"
-        name="quantityDiscountPercent"
-        value={fields.quantity_discount.percentOff}
-        suffix="%"
-        onValueChange={(value) => {
-          patch("quantity_discount", { percentOff: value });
-        }}
-      />
-    ),
+    quantity_discount: ({ currencyPrefix, fields, patch }) => {
+      const discountEntered = fields.quantity_discount.value.trim() !== "";
+      const minQuantityValidation =
+        discountEntered || fields.quantity_discount.minQuantity.trim()
+          ? validatePositiveInteger(
+              fields.quantity_discount.minQuantity,
+              "Apply when customer buys at least",
+            )
+          : null;
+      const simulatedQuantityValidation =
+        discountEntered || fields.quantity_discount.simulatedQuantity.trim()
+          ? validatePositiveInteger(
+              fields.quantity_discount.simulatedQuantity,
+              "Customer buys",
+            )
+          : null;
+
+      return (
+        <s-stack direction="block" gap="small-100">
+          <StrategyNumericField
+            label="Apply when customer buys at least"
+            name="quantityDiscountMinQuantity"
+            value={fields.quantity_discount.minQuantity}
+            suffix="items"
+            error={
+              minQuantityValidation && !minQuantityValidation.ok
+                ? minQuantityValidation.message
+                : undefined
+            }
+            onValueChange={(value) => {
+              patch("quantity_discount", { minQuantity: value });
+            }}
+          />
+          <s-choice-list
+            label="Discount Type"
+            name="quantityDiscountType"
+            values={[fields.quantity_discount.type]}
+            onChange={(event: Event) => {
+              const next = readChoiceValues(event)[0];
+              if (next === "percentage" || next === "fixed") {
+                patch("quantity_discount", { type: next as DiscountType });
+              }
+            }}
+          >
+            <s-choice value="percentage">Percentage</s-choice>
+            <s-choice value="fixed">Fixed Amount</s-choice>
+          </s-choice-list>
+          <StrategyNumericField
+            label="Discount"
+            name="quantityDiscountValue"
+            value={fields.quantity_discount.value}
+            prefix={
+              fields.quantity_discount.type === "fixed"
+                ? currencyPrefix
+                : undefined
+            }
+            suffix={
+              fields.quantity_discount.type === "percentage" ? "%" : undefined
+            }
+            onValueChange={(value) => {
+              patch("quantity_discount", { value });
+            }}
+          />
+          <s-stack direction="block" gap="small-100">
+            <s-text type="strong">Simulation</s-text>
+            <StrategyNumericField
+              label="Customer buys"
+              name="quantityDiscountSimulatedQuantity"
+              value={fields.quantity_discount.simulatedQuantity}
+              suffix="items"
+              error={
+                simulatedQuantityValidation && !simulatedQuantityValidation.ok
+                  ? simulatedQuantityValidation.message
+                  : undefined
+              }
+              onValueChange={(value) => {
+                patch("quantity_discount", { simulatedQuantity: value });
+              }}
+            />
+          </s-stack>
+        </s-stack>
+      );
+    },
 
     gift_with_purchase: ({ currencyPrefix, fields, patch }) => (
       <StrategyNumericField

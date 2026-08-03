@@ -96,7 +96,8 @@ export const STRATEGY_CATALOG: Record<StrategyId, StrategyDefinition> = {
   quantity_discount: {
     id: "quantity_discount",
     label: "Quantity Discount",
-    description: "Percentage off for bulk purchases.",
+    description:
+      "Discount that applies only when the order reaches a minimum quantity.",
     category: "price_adjustment",
   },
   gift_with_purchase: {
