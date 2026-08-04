@@ -113,6 +113,7 @@ export function ProductDecisionDashboardPage({
           costDisplay={costDisplay}
           trackedProductId={trackedProductId}
           currency={currency}
+          totalCost={totalCost}
           sellingPrice={sellingPrice}
           sellingPriceDisplay={sellingPriceDisplay}
         />
@@ -158,6 +159,7 @@ function ProductSummarySection({
   costDisplay,
   trackedProductId,
   currency,
+  totalCost,
   sellingPrice,
   sellingPriceDisplay,
 }: {
@@ -169,6 +171,7 @@ function ProductSummarySection({
   costDisplay: string;
   trackedProductId: string;
   currency: string;
+  totalCost: string | null;
   sellingPrice: string | null;
   sellingPriceDisplay: string;
 }) {
@@ -195,6 +198,7 @@ function ProductSummarySection({
           <InlineSellingPriceEditor
             trackedProductId={trackedProductId}
             currency={currency}
+            totalCost={totalCost}
             sellingPrice={sellingPrice}
             sellingPriceDisplay={sellingPriceDisplay}
           />

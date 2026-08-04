@@ -5,6 +5,10 @@ import { PageLayout } from "~/components/PageLayout";
 import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
 import { validateSellingPrice } from "~/modules/cost-profiles/lib/validateSellingPrice";
 
+import {
+  SellingPriceMethodFields,
+  type SellingPricePricingMethod,
+} from "./components/SellingPriceMethodFields";
 import { trackedProductHref } from "./lib/productStatus";
 
 export type SellingPricePageData = {
@@ -61,7 +65,7 @@ function readEventValue(event: Event): string {
 }
 
 /**
- * Selling price entry — one input, save or cancel. No calculations.
+ * Selling price entry — manual input or margin-based suggestion, then save.
  */
 export function SellingPricePage({ data }: SellingPricePageProps) {
   const {
@@ -74,6 +78,8 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
   const fetcher = useFetcher<SellingPriceActionData>();
   const navigate = useNavigate();
 
+  const [pricingMethod, setPricingMethod] =
+    useState<SellingPricePricingMethod>("manual");
   const [value, setValue] = useState(() => formatInputAmount(sellingPrice));
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -115,6 +121,8 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
 
     const result = validateSellingPrice(raw);
     if (!result.ok) {
+      // Surface the selling-price field if Save was pressed from margin mode.
+      setPricingMethod("manual");
       setFieldError(result.message);
       return;
     }
@@ -142,6 +150,13 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
     [fieldError, saveError],
   );
 
+  const handleSuggestedPriceApplied = useCallback((suggested: string) => {
+    latestValue.current = suggested;
+    setValue(suggested);
+    setFieldError(null);
+    setSaveError(null);
+  }, []);
+
   const costDisplay =
     totalCost != null
       ? formatCurrencyAmount(totalCost, currency)
@@ -168,15 +183,16 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
           <s-text>{formatMoneyDisplay(sellingPrice, currency)}</s-text>
         </s-stack>
 
-        <s-text-field
-          label="Selling Price"
-          name="sellingPrice"
-          value={value}
-          prefix={currency}
+        <SellingPriceMethodFields
+          currency={currency}
+          totalCost={totalCost}
+          pricingMethod={pricingMethod}
+          onPricingMethodChange={setPricingMethod}
+          sellingPriceValue={value}
+          sellingPriceError={fieldError ?? undefined}
           disabled={isSaving}
-          error={fieldError ?? undefined}
-          onInput={handleInput}
-          onChange={handleInput}
+          onSellingPriceInput={handleInput}
+          onSuggestedPriceApplied={handleSuggestedPriceApplied}
         />
 
         <s-stack direction="inline" gap="base">

@@ -5,6 +5,10 @@ export {
   COST_BREAKDOWN_MODAL_ID,
 } from "./CostBreakdownModal";
 export { InlineSellingPriceEditor } from "./InlineSellingPriceEditor";
+export {
+  SellingPriceMethodFields,
+  type SellingPricePricingMethod,
+} from "./SellingPriceMethodFields";
 export { StickyWorkspaceHeader } from "./StickyWorkspaceHeader";
 export { StrategyControls } from "./StrategyControls";
 export { ProductList } from "./ProductList";

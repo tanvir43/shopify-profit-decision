@@ -3,12 +3,17 @@ import { useFetcher } from "react-router";
 
 import { validateSellingPrice } from "~/modules/cost-profiles/lib/validateSellingPrice";
 
+import {
+  SellingPriceMethodFields,
+  type SellingPricePricingMethod,
+} from "./SellingPriceMethodFields";
 import { sellingPriceHref } from "../lib/productStatus";
 import type { SellingPriceActionData } from "../SellingPricePage";
 
 type InlineSellingPriceEditorProps = {
   trackedProductId: string;
   currency: string;
+  totalCost: string | null;
   sellingPrice: string | null;
   sellingPriceDisplay: string;
 };
@@ -38,15 +43,19 @@ function readEventValue(event: Event): string {
 
 /**
  * Inline selling-price edit on Product Summary — same page, no modal (PP-0015.4.5).
+ * Supports manual entry or margin-based suggestion (PP-0016.1).
  */
 export function InlineSellingPriceEditor({
   trackedProductId,
   currency,
+  totalCost,
   sellingPrice,
   sellingPriceDisplay,
 }: InlineSellingPriceEditorProps) {
   const fetcher = useFetcher<SellingPriceActionData>();
   const [editing, setEditing] = useState(false);
+  const [pricingMethod, setPricingMethod] =
+    useState<SellingPricePricingMethod>("manual");
   const [value, setValue] = useState(() => formatInputAmount(sellingPrice));
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -65,7 +74,7 @@ export function InlineSellingPriceEditor({
   }, [sellingPrice, editing]);
 
   useEffect(() => {
-    if (!editing) {
+    if (!editing || pricingMethod !== "manual") {
       return;
     }
 
@@ -74,7 +83,7 @@ export function InlineSellingPriceEditor({
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [editing]);
+  }, [editing, pricingMethod]);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -91,6 +100,7 @@ export function InlineSellingPriceEditor({
 
       if (fetcher.data.ok) {
         setEditing(false);
+        setPricingMethod("manual");
         setFieldError(null);
         setSaveError(null);
       } else {
@@ -107,6 +117,7 @@ export function InlineSellingPriceEditor({
     const next = formatInputAmount(sellingPrice);
     setValue(next);
     latestValue.current = next;
+    setPricingMethod("manual");
     setFieldError(null);
     setSaveError(null);
     setEditing(false);
@@ -125,6 +136,7 @@ export function InlineSellingPriceEditor({
 
     const result = validateSellingPrice(raw);
     if (!result.ok) {
+      setPricingMethod("manual");
       setFieldError(result.message);
       return;
     }
@@ -155,6 +167,13 @@ export function InlineSellingPriceEditor({
     [fieldError, saveError],
   );
 
+  const handleSuggestedPriceApplied = useCallback((suggested: string) => {
+    latestValue.current = suggested;
+    setValue(suggested);
+    setFieldError(null);
+    setSaveError(null);
+  }, []);
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key === "Enter") {
@@ -178,7 +197,13 @@ export function InlineSellingPriceEditor({
           <s-text color="subdued">Selling Price</s-text>
           <s-text type="strong">{sellingPriceDisplay}</s-text>
         </s-stack>
-        <s-button variant="secondary" onClick={() => setEditing(true)}>
+        <s-button
+          variant="secondary"
+          onClick={() => {
+            setPricingMethod("manual");
+            setEditing(true);
+          }}
+        >
           Edit
         </s-button>
       </s-stack>
@@ -194,16 +219,17 @@ export function InlineSellingPriceEditor({
           </s-banner>
         ) : null}
 
-        <s-text-field
-          ref={inputRef as never}
-          label="Selling Price"
-          name="sellingPrice"
-          value={value}
-          prefix={currency}
+        <SellingPriceMethodFields
+          currency={currency}
+          totalCost={totalCost}
+          pricingMethod={pricingMethod}
+          onPricingMethodChange={setPricingMethod}
+          sellingPriceValue={value}
+          sellingPriceError={fieldError ?? undefined}
           disabled={isSaving}
-          error={fieldError ?? undefined}
-          onInput={handleInput}
-          onChange={handleInput}
+          sellingPriceInputRef={inputRef}
+          onSellingPriceInput={handleInput}
+          onSuggestedPriceApplied={handleSuggestedPriceApplied}
         />
 
         <s-stack direction="inline" gap="base">
