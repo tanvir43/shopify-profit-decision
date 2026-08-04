@@ -5,7 +5,6 @@ import type {
 } from "react-router";
 import {
   isRouteErrorResponse,
-  redirect,
   useLoaderData,
   useRouteError,
 } from "react-router";
@@ -21,7 +20,6 @@ import {
   SellingPricePage,
   type SellingPriceActionData,
 } from "~/modules/products";
-import { trackedProductHref } from "~/modules/products/lib/productStatus";
 import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
@@ -125,8 +123,9 @@ export const action = async ({
     } satisfies SellingPriceActionData;
   }
 
-  // Server redirect guarantees Product Overview reloads with the saved value.
-  return redirect(trackedProductHref(tracked.id));
+  // JSON success lets the Decision Workspace inline editor stay put and
+  // revalidate; the dedicated Selling Price page navigates on ok.
+  return { ok: true } satisfies SellingPriceActionData;
 };
 
 export default function SellingPriceRoute() {

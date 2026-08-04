@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { getCurrencyDisplay } from "~/modules/cost-profiles/lib/formatCurrency";
 
@@ -17,6 +17,7 @@ import {
   patchStrategyFields,
   removeStrategy,
 } from "../lib/simulateProjectedOutcome";
+import { isStrategyActive } from "../lib/strategyActivation";
 import { validatePositiveInteger } from "../lib/validatePositiveInteger";
 import { validateShippingCost } from "../lib/validateShippingCost";
 
@@ -30,6 +31,45 @@ const STRATEGY_LIBRARY_MODAL_ID = "strategy-library-modal";
 
 /** Shared width for strategy numeric inputs — consistent across all strategies. */
 const NUMERIC_FIELD_MAX_WIDTH = "320px";
+
+/**
+ * UI highlight rule: strategy contributes to the current simulation.
+ * Quantity Discount also requires a valid customer quantity at/above threshold.
+ * Compatibility analysis keeps its own activation rules unchanged.
+ */
+function isStrategyHighlightActive(
+  strategyId: StrategyId,
+  fields: StrategyFieldMap,
+): boolean {
+  if (strategyId === "quantity_discount") {
+    const minRaw = fields.quantity_discount.minQuantity.trim();
+    const simulatedRaw = fields.quantity_discount.simulatedQuantity.trim();
+    const discountRaw = fields.quantity_discount.value.trim();
+    if (minRaw === "" || simulatedRaw === "" || discountRaw === "") {
+      return false;
+    }
+
+    const minQuantity = Number(minRaw);
+    const simulatedQuantity = Number(simulatedRaw);
+    const discountValue = Number(discountRaw);
+    if (
+      !Number.isFinite(minQuantity) ||
+      !Number.isInteger(minQuantity) ||
+      minQuantity <= 0 ||
+      !Number.isFinite(simulatedQuantity) ||
+      !Number.isInteger(simulatedQuantity) ||
+      simulatedQuantity <= 0 ||
+      !Number.isFinite(discountValue) ||
+      discountValue <= 0
+    ) {
+      return false;
+    }
+
+    return simulatedQuantity >= minQuantity;
+  }
+
+  return isStrategyActive(strategyId, fields);
+}
 
 function readEventValue(event: Event): string {
   const currentTarget = event.currentTarget as { value?: string } | null;
@@ -107,36 +147,64 @@ function StrategyNumericField({
   );
 }
 
+/** Subtle success treatment for strategies that contribute to the simulation. */
+const activeStrategyCardStyle: CSSProperties = {
+  padding: "var(--p-space-200, 8px)",
+  borderRadius: "var(--p-border-radius-200, 8px)",
+  border:
+    "var(--p-border-width-025, 1px) solid var(--p-color-border-success, #29845a)",
+  background: "var(--p-color-bg-surface-success, #f1f8f5)",
+  height: "100%",
+  boxSizing: "border-box",
+};
+
 function StrategyRow({
   title,
+  isActive,
   onRemove,
   children,
 }: {
   title: string;
+  isActive: boolean;
   onRemove: () => void;
   children: ReactNode;
 }) {
+  const header = (
+    <s-stack
+      direction="inline"
+      gap="small-200"
+      alignItems="center"
+      justifyContent="space-between"
+    >
+      <s-stack direction="inline" gap="small-200" alignItems="center">
+        <s-text type="strong">{title}</s-text>
+        {isActive ? <s-badge tone="success">ACTIVE</s-badge> : null}
+      </s-stack>
+      <s-button
+        variant="tertiary"
+        tone="neutral"
+        accessibilityLabel={`Remove ${title}`}
+        onClick={onRemove}
+      >
+        Remove
+      </s-button>
+    </s-stack>
+  );
+
+  const body = (
+    <s-stack direction="block" gap="small-100">
+      {header}
+      {children}
+    </s-stack>
+  );
+
+  if (isActive) {
+    return <div style={activeStrategyCardStyle}>{body}</div>;
+  }
+
   return (
     <s-box padding="small-100" borderWidth="base" borderRadius="base">
-      <s-stack direction="block" gap="small-100">
-        <s-stack
-          direction="inline"
-          gap="small-200"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <s-text type="strong">{title}</s-text>
-          <s-button
-            variant="tertiary"
-            tone="neutral"
-            accessibilityLabel={`Remove ${title}`}
-            onClick={onRemove}
-          >
-            Remove
-          </s-button>
-        </s-stack>
-        {children}
-      </s-stack>
+      {body}
     </s-box>
   );
 }
@@ -466,26 +534,33 @@ export function StrategyControls({
 
   return (
     <s-stack direction="block" gap="small-100">
-      {values.activeIds.map((strategyId) => {
-        const definition = getStrategyDefinition(strategyId);
-        const renderControls = STRATEGY_CONTROL_RENDERERS[strategyId];
+      <s-grid
+        gap="small-100"
+        gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))"
+      >
+        {values.activeIds.map((strategyId) => {
+          const definition = getStrategyDefinition(strategyId);
+          const renderControls = STRATEGY_CONTROL_RENDERERS[strategyId];
+          const active = isStrategyHighlightActive(strategyId, values.fields);
 
-        return (
-          <StrategyRow
-            key={strategyId}
-            title={definition.label}
-            onRemove={() => {
-              onChange(removeStrategy(values, strategyId));
-            }}
-          >
-            {renderControls({
-              currencyPrefix,
-              fields: values.fields,
-              patch,
-            })}
-          </StrategyRow>
-        );
-      })}
+          return (
+            <StrategyRow
+              key={strategyId}
+              title={definition.label}
+              isActive={active}
+              onRemove={() => {
+                onChange(removeStrategy(values, strategyId));
+              }}
+            >
+              {renderControls({
+                currencyPrefix,
+                fields: values.fields,
+                patch,
+              })}
+            </StrategyRow>
+          );
+        })}
+      </s-grid>
 
       <s-button
         variant="secondary"

@@ -24,7 +24,8 @@ export interface DetailedSetupService {
 
   /**
    * Create/update CostItems from the breakdown form and set mode to DETAILED.
-   * Does not change totalCost. Does not calculate totals or margins.
+   * Sets totalCost to the sum of saved item amounts (Decision Workspace Product Cost).
+   * Does not calculate margins or run the Decision Engine.
    */
   saveDetailedBreakdown(
     input: SaveDetailedBreakdownInput,

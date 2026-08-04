@@ -78,8 +78,18 @@ function buildItemsFromAmounts(
   return items;
 }
 
+/** Sum CostItem values into the profile totalCost used by Decision Workspace. */
+function totalCostFromItems(items: CostItemInput[]): string | null {
+  if (items.length === 0) {
+    return null;
+  }
+
+  const total = items.reduce((sum, item) => sum + Number(item.value), 0);
+  return total.toFixed(2);
+}
+
 /**
- * Application service for the Detailed Cost Builder (PP-0013).
+ * Application service for the Detailed Cost Builder (PP-0013 / PP-0015.4.5).
  */
 export function createDetailedSetupService(
   repository: CostProfileRepository,
@@ -103,6 +113,7 @@ export function createDetailedSetupService(
       );
 
       const items = buildItemsFromAmounts(input.amounts, existing);
+      const totalCost = totalCostFromItems(items);
 
       if (existing) {
         return repository.save({
@@ -111,7 +122,7 @@ export function createDetailedSetupService(
           productId: existing.productId,
           currency: existing.currency,
           mode: "DETAILED",
-          totalCost: existing.totalCost,
+          totalCost,
           sellingPrice: existing.sellingPrice,
           notes: existing.notes,
           items,
@@ -123,7 +134,7 @@ export function createDetailedSetupService(
         productId: input.productId,
         currency: input.currency,
         mode: "DETAILED",
-        totalCost: null,
+        totalCost,
         sellingPrice: null,
         notes: null,
         items,

@@ -100,6 +100,10 @@ Replace Quantity Discount with a threshold-based strategy: Minimum Quantity, Dis
 
 Clarify Quantity Discount labels only: “Apply when customer buys at least” (threshold), “Simulation” / “Customer buys” (order size), Discount label aligned with Discount strategy. No calculation, activation, or other-strategy changes.
 
+### PP-0015.4.4 — Decision Strategy Visibility Improvements
+
+Responsive 2-column strategy grid (collapses on narrow viewports), subtle success highlight + ACTIVE badge for strategies contributing to the simulation. Layout/visibility only — no calculation, sticky header, compatibility, or Product Costing changes.
+
 ### PP-0015.6 — Decision Workspace UX Polish
 
 Polish Decision Workspace for MVP usability: clear section hierarchy (Product Summary → sticky Projected Outcome → Decision Strategies → Product Costing), consistent short labels, uniform numeric inputs, denser strategy settings, sticky summary clearance, subdued compatibility warnings, responsive and accessible controls. UI polish only — no calculation, engine, persistence, or routing changes.
@@ -107,6 +111,10 @@ Polish Decision Workspace for MVP usability: clear section hierarchy (Product Su
 ### PP-0015.6.1 — Restore Sticky Projected Outcome
 
 Restore sticky Projected Outcome after PP-0015.6 regression: summary must remain visible while editing strategies. Fix containing-block layout only — no redesign, calculation, strategy control, or warning-system changes.
+
+### PP-0015.4.5 — Product Editing UX Refinement
+
+Selling Price edits inline on Product Summary (focus, Enter/Escape, Save/Cancel). Cost Breakdown edits in a Polaris modal reusing the existing form. Successful saves revalidate the Decision Workspace so Profit / Margin / Status update without navigation. No calculation or Decision Engine changes.
 
 ---
 

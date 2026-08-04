@@ -3,15 +3,19 @@ import { useState } from "react";
 import { PageLayout } from "~/components/PageLayout";
 import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
 import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileMode";
+import type { CostItemType } from "~/modules/cost-profiles/types/CostItemType";
 
 import { CompatibilityWarnings } from "./components/CompatibilityWarnings";
+import {
+  CostBreakdownModal,
+  COST_BREAKDOWN_MODAL_ID,
+} from "./components/CostBreakdownModal";
+import { InlineSellingPriceEditor } from "./components/InlineSellingPriceEditor";
 import { StickyWorkspaceHeader } from "./components/StickyWorkspaceHeader";
 import { StrategyControls } from "./components/StrategyControls";
 import {
-  detailedSetupHref,
   formatProductStatus,
   quickStartHref,
-  sellingPriceHref,
   type ProductStatusTone,
 } from "./lib/productStatus";
 import {
@@ -31,6 +35,7 @@ export type ProductDecisionDashboardData = {
   currency: string;
   totalCost: string | null;
   sellingPrice: string | null;
+  costAmounts: Record<CostItemType, string>;
 };
 
 type ProductDecisionDashboardPageProps = {
@@ -42,6 +47,7 @@ type ProductDecisionDashboardPageProps = {
  * Strategy inputs are ephemeral; every active strategy feeds one projection
  * pipeline. Compatibility analysis runs after simulation and never blocks it.
  * Sticky Workspace Header keeps product + outcome essentials visible while scrolling.
+ * Selling price edits inline; cost breakdown edits in a modal (PP-0015.4.5).
  */
 export function ProductDecisionDashboardPage({
   data,
@@ -56,6 +62,7 @@ export function ProductDecisionDashboardPage({
     currency,
     totalCost,
     sellingPrice,
+    costAmounts,
   } = data;
 
   const [strategies, setStrategies] = useState<StrategyInputs>(
@@ -104,11 +111,10 @@ export function ProductDecisionDashboardPage({
           imageUrl={imageUrl}
           thumbnailAlt={thumbnailAlt}
           costDisplay={costDisplay}
+          trackedProductId={trackedProductId}
+          currency={currency}
+          sellingPrice={sellingPrice}
           sellingPriceDisplay={sellingPriceDisplay}
-          sellingPriceHref={sellingPriceHref(trackedProductId)}
-          sellingPriceLabel={
-            hasSellingPrice ? "Edit Selling Price" : "Set Selling Price"
-          }
         />
 
         <StickyWorkspaceHeader
@@ -129,11 +135,16 @@ export function ProductDecisionDashboardPage({
 
         <ProductCostingSection
           improveAccuracyLabel={improveAccuracyLabel}
-          detailedSetupHref={detailedSetupHref(trackedProductId)}
           isQuickStart={isQuickStart}
           quickStartHref={quickStartHref(trackedProductId)}
         />
       </s-stack>
+
+      <CostBreakdownModal
+        trackedProductId={trackedProductId}
+        currency={currency}
+        initialAmounts={costAmounts}
+      />
     </PageLayout>
   );
 }
@@ -145,9 +156,10 @@ function ProductSummarySection({
   imageUrl,
   thumbnailAlt,
   costDisplay,
+  trackedProductId,
+  currency,
+  sellingPrice,
   sellingPriceDisplay,
-  sellingPriceHref: priceHref,
-  sellingPriceLabel,
 }: {
   productTitle: string;
   statusLabel: string;
@@ -155,9 +167,10 @@ function ProductSummarySection({
   imageUrl: string | null;
   thumbnailAlt: string;
   costDisplay: string;
+  trackedProductId: string;
+  currency: string;
+  sellingPrice: string | null;
   sellingPriceDisplay: string;
-  sellingPriceHref: string;
-  sellingPriceLabel: string;
 }) {
   return (
     <s-section heading="Product Summary">
@@ -179,13 +192,12 @@ function ProductSummarySection({
             <s-text color="subdued">Product Cost</s-text>
             <s-text type="strong">{costDisplay}</s-text>
           </s-stack>
-          <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">Selling Price</s-text>
-            <s-text type="strong">{sellingPriceDisplay}</s-text>
-          </s-stack>
-          <s-button href={priceHref} variant="secondary">
-            {sellingPriceLabel}
-          </s-button>
+          <InlineSellingPriceEditor
+            trackedProductId={trackedProductId}
+            currency={currency}
+            sellingPrice={sellingPrice}
+            sellingPriceDisplay={sellingPriceDisplay}
+          />
         </s-stack>
       </s-stack>
     </s-section>
@@ -220,12 +232,10 @@ function StrategiesSection({
 
 function ProductCostingSection({
   improveAccuracyLabel,
-  detailedSetupHref: breakdownHref,
   isQuickStart,
   quickStartHref: editTotalHref,
 }: {
   improveAccuracyLabel: string;
-  detailedSetupHref: string;
   isQuickStart: boolean;
   quickStartHref: string;
 }) {
@@ -241,7 +251,11 @@ function ProductCostingSection({
                 precise pricing insights.
               </s-paragraph>
             </s-stack>
-            <s-button href={breakdownHref} variant="primary">
+            <s-button
+              variant="primary"
+              commandFor={COST_BREAKDOWN_MODAL_ID}
+              command="--show"
+            >
               {improveAccuracyLabel}
             </s-button>
           </s-stack>

@@ -5,37 +5,30 @@ import { PageLayout } from "~/components/PageLayout";
 import { validateDetailedSetupAmount } from "~/modules/cost-profiles/lib/validateDetailedSetupAmount";
 import {
   COST_ITEM_TYPES,
-  COST_ITEM_TYPE_LABELS,
   type CostItemType,
 } from "~/modules/cost-profiles/types/CostItemType";
+
+import {
+  CostBreakdownForm,
+  emptyAmounts,
+  type CostBreakdownAmounts,
+  type CostBreakdownFieldErrors,
+} from "./components/CostBreakdownForm";
 
 export type DetailedSetupPageData = {
   trackedProductId: string;
   productTitle: string;
   currency: string;
-  amounts: Record<CostItemType, string>;
+  amounts: CostBreakdownAmounts;
 };
 
 export type DetailedSetupActionData =
   | { ok: true }
-  | { ok: false; error: string; fieldErrors?: Partial<Record<CostItemType, string>> };
+  | { ok: false; error: string; fieldErrors?: CostBreakdownFieldErrors };
 
 type DetailedSetupPageProps = {
   data: DetailedSetupPageData;
 };
-
-type AmountState = Record<CostItemType, string>;
-type FieldErrorState = Partial<Record<CostItemType, string>>;
-
-function emptyAmounts(): AmountState {
-  return {
-    PURCHASE: "",
-    PACKAGING: "",
-    SHIPPING: "",
-    PAYMENT_FEES: "",
-    OTHER: "",
-  };
-}
 
 /**
  * Detailed Cost Builder — five fixed categories, one save action (PP-0013).
@@ -46,8 +39,8 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
   const fetcher = useFetcher<DetailedSetupActionData>();
   const navigate = useNavigate();
 
-  const [amounts, setAmounts] = useState<AmountState>(initialAmounts);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrorState>({});
+  const [amounts, setAmounts] = useState<CostBreakdownAmounts>(initialAmounts);
+  const [fieldErrors, setFieldErrors] = useState<CostBreakdownFieldErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const handledSubmission = useRef(false);
 
@@ -77,10 +70,9 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
     }
   }, [fetcher.state, fetcher.data, navigate, trackedProductId]);
 
-  const handleChange = useCallback(
-    (type: CostItemType) => (event: Event) => {
-      const target = event.target as HTMLInputElement;
-      setAmounts((prev) => ({ ...prev, [type]: target.value }));
+  const handleAmountChange = useCallback(
+    (type: CostItemType, value: string) => {
+      setAmounts((prev) => ({ ...prev, [type]: value }));
       if (fieldErrors[type]) {
         setFieldErrors((prev) => {
           const next = { ...prev };
@@ -98,7 +90,7 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
   const handleSubmit = useCallback(() => {
     setSaveError(null);
 
-    const nextErrors: FieldErrorState = {};
+    const nextErrors: CostBreakdownFieldErrors = {};
     for (const type of COST_ITEM_TYPES) {
       const result = validateDetailedSetupAmount(amounts[type]);
       if (!result.ok) {
@@ -124,31 +116,14 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
   return (
     <PageLayout title={productTitle}>
       <s-stack direction="block" gap="large-100">
-        {saveError ? (
-          <s-banner tone="critical" heading="Could not save">
-            <p>{saveError}</p>
-          </s-banner>
-        ) : null}
-
-        <s-paragraph>
-          Break your total cost into individual parts. Leave a field blank if
-          you do not know that amount yet.
-        </s-paragraph>
-
-        <s-stack direction="block" gap="base">
-          {COST_ITEM_TYPES.map((type) => (
-            <s-text-field
-              key={type}
-              label={COST_ITEM_TYPE_LABELS[type]}
-              name={type}
-              value={amounts[type]}
-              prefix={currency}
-              disabled={isSaving}
-              error={fieldErrors[type]}
-              onChange={handleChange(type)}
-            />
-          ))}
-        </s-stack>
+        <CostBreakdownForm
+          currency={currency}
+          amounts={amounts}
+          fieldErrors={fieldErrors}
+          saveError={saveError}
+          disabled={isSaving}
+          onAmountChange={handleAmountChange}
+        />
 
         <s-button
           variant="primary"

@@ -1,42 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useFetcher, useNavigate } from "react-router";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useFetcher } from "react-router";
 
-import { PageLayout } from "~/components/PageLayout";
-import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
 import { validateSellingPrice } from "~/modules/cost-profiles/lib/validateSellingPrice";
 
-import { trackedProductHref } from "./lib/productStatus";
+import { sellingPriceHref } from "../lib/productStatus";
+import type { SellingPriceActionData } from "../SellingPricePage";
 
-export type SellingPricePageData = {
+type InlineSellingPriceEditorProps = {
   trackedProductId: string;
-  productTitle: string;
   currency: string;
-  totalCost: string | null;
   sellingPrice: string | null;
+  sellingPriceDisplay: string;
 };
 
-export type SellingPriceActionData =
-  | { ok: true }
-  | { ok: false; error: string };
-
-type SellingPricePageProps = {
-  data: SellingPricePageData;
-};
-
-function formatMoneyDisplay(amount: string | null, currency: string): string {
-  if (amount == null || amount === "") {
-    return "Not Set";
-  }
-
-  const value = Number(amount);
-  if (!Number.isFinite(value)) {
-    return `${currency} ${amount}`;
-  }
-
-  return `${currency} ${value.toFixed(2)}`;
-}
-
-/** Normalize a stored decimal for the editable input (max 2 fractional digits). */
 function formatInputAmount(amount: string | null): string {
   if (amount == null || amount === "") {
     return "";
@@ -61,29 +37,44 @@ function readEventValue(event: Event): string {
 }
 
 /**
- * Selling price entry — one input, save or cancel. No calculations.
+ * Inline selling-price edit on Product Summary — same page, no modal (PP-0015.4.5).
  */
-export function SellingPricePage({ data }: SellingPricePageProps) {
-  const {
-    trackedProductId,
-    productTitle,
-    currency,
-    totalCost,
-    sellingPrice,
-  } = data;
+export function InlineSellingPriceEditor({
+  trackedProductId,
+  currency,
+  sellingPrice,
+  sellingPriceDisplay,
+}: InlineSellingPriceEditorProps) {
   const fetcher = useFetcher<SellingPriceActionData>();
-  const navigate = useNavigate();
-
+  const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(() => formatInputAmount(sellingPrice));
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  // Keep a ref mirror so Save can read the latest keystrokes even if a
-  // blur-commit onChange has not flushed through React yet.
   const latestValue = useRef(value);
+  const inputRef = useRef<HTMLElement | null>(null);
   const handledSubmission = useRef(false);
 
   const isSaving = fetcher.state !== "idle";
-  const overviewHref = trackedProductHref(trackedProductId);
+
+  useEffect(() => {
+    if (!editing) {
+      const next = formatInputAmount(sellingPrice);
+      setValue(next);
+      latestValue.current = next;
+    }
+  }, [sellingPrice, editing]);
+
+  useEffect(() => {
+    if (!editing) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [editing]);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -99,14 +90,33 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
       handledSubmission.current = true;
 
       if (fetcher.data.ok) {
-        navigate(overviewHref);
+        setEditing(false);
+        setFieldError(null);
+        setSaveError(null);
       } else {
         setSaveError(fetcher.data.error);
       }
     }
-  }, [fetcher.state, fetcher.data, navigate, overviewHref]);
+  }, [fetcher.state, fetcher.data]);
 
-  const handleSubmit = useCallback(() => {
+  const handleCancel = useCallback(() => {
+    if (isSaving) {
+      return;
+    }
+
+    const next = formatInputAmount(sellingPrice);
+    setValue(next);
+    latestValue.current = next;
+    setFieldError(null);
+    setSaveError(null);
+    setEditing(false);
+  }, [isSaving, sellingPrice]);
+
+  const handleSave = useCallback(() => {
+    if (isSaving) {
+      return;
+    }
+
     setSaveError(null);
     handledSubmission.current = false;
 
@@ -123,9 +133,12 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
 
     fetcher.submit(
       { sellingPrice: result.value },
-      { method: "post" },
+      {
+        method: "post",
+        action: sellingPriceHref(trackedProductId),
+      },
     );
-  }, [fetcher]);
+  }, [fetcher, isSaving, trackedProductId]);
 
   const handleInput = useCallback(
     (event: Event) => {
@@ -142,33 +155,47 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
     [fieldError, saveError],
   );
 
-  const costDisplay =
-    totalCost != null
-      ? formatCurrencyAmount(totalCost, currency)
-      : "Not Available";
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleSave();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleCancel();
+      }
+    },
+    [handleCancel, handleSave],
+  );
+
+  if (!editing) {
+    return (
+      <s-stack direction="inline" gap="large-100" alignItems="end">
+        <s-stack direction="block" gap="small-100">
+          <s-text color="subdued">Selling Price</s-text>
+          <s-text type="strong">{sellingPriceDisplay}</s-text>
+        </s-stack>
+        <s-button variant="secondary" onClick={() => setEditing(true)}>
+          Edit
+        </s-button>
+      </s-stack>
+    );
+  }
 
   return (
-    <PageLayout title={productTitle}>
-      <s-stack direction="block" gap="large-100">
+    <div onKeyDown={handleKeyDown}>
+      <s-stack direction="block" gap="small-200">
         {saveError ? (
           <s-banner tone="critical" heading="Could not save">
             <p>{saveError}</p>
           </s-banner>
         ) : null}
 
-        <s-heading>{productTitle}</s-heading>
-
-        <s-stack direction="block" gap="small-200">
-          <s-text color="subdued">Current Product Cost</s-text>
-          <s-text>{costDisplay}</s-text>
-        </s-stack>
-
-        <s-stack direction="block" gap="small-200">
-          <s-text color="subdued">Current Selling Price</s-text>
-          <s-text>{formatMoneyDisplay(sellingPrice, currency)}</s-text>
-        </s-stack>
-
         <s-text-field
+          ref={inputRef as never}
           label="Selling Price"
           name="sellingPrice"
           value={value}
@@ -184,19 +211,19 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
             variant="primary"
             disabled={isSaving}
             loading={isSaving}
-            onClick={handleSubmit}
+            onClick={handleSave}
           >
             Save
           </s-button>
           <s-button
             variant="secondary"
-            href={overviewHref}
             disabled={isSaving}
+            onClick={handleCancel}
           >
             Cancel
           </s-button>
         </s-stack>
       </s-stack>
-    </PageLayout>
+    </div>
   );
 }

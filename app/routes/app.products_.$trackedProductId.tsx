@@ -8,7 +8,9 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { PageLayout } from "~/components/PageLayout";
 import { costProfileService } from "~/modules/cost-profiles/services/costProfileService.server";
+import { categoryToCostItemType } from "~/modules/cost-profiles/types/CostItemType";
 import {
+  emptyAmounts,
   ProductDecisionDashboardPage,
   ProductOnboardingPage,
 } from "~/modules/products";
@@ -68,6 +70,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       // Keep fallback identity when Shopify enrichment fails.
     }
 
+    const costAmounts = emptyAmounts();
+    for (const item of profile.items) {
+      const type = categoryToCostItemType(item.category);
+      if (costAmounts[type] === "") {
+        costAmounts[type] = item.value;
+      }
+    }
+
     return {
       view: "dashboard" as const,
       trackedProductId: tracked.id,
@@ -79,6 +89,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       currency: profile.currency,
       totalCost: profile.totalCost,
       sellingPrice: profile.sellingPrice,
+      costAmounts,
     };
   }
 
