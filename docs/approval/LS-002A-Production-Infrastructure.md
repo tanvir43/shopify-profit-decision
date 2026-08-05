@@ -320,4 +320,112 @@ ProfitPilot is **build-ready** and **database-shape-ready** for Neon Postgres, w
 
 ---
 
-*End of LS-002A. No deployment, DNS, Partner Dashboard, TOML, env, or application code changes were made in this phase.*
+## LS-002A-FIX-001 Result
+
+| Field | Value |
+| --- | --- |
+| **Fix ID** | LS-002A-FIX-001 |
+| **Date** | 2026-08-04 |
+| **Scope** | Minimum Vercel Hobby compatibility only |
+| **Deployed?** | No |
+
+### What changed
+
+| Change | File(s) | Notes |
+| --- | --- | --- |
+| Added `@vercel/react-router` | `package.json`, `package-lock.json` | Official Vercel React Router integration (`^1.3.2`) |
+| Added React Router Vercel preset | `react-router.config.ts` (new) | `ssr: true` + `presets: [vercelPreset()]` |
+| Adapted server entry for Vercel | `app/entry.server.tsx` | Uses `@vercel/react-router/entry.server` `handleRequest`; still calls Shopify `addDocumentResponseHeaders` first |
+| Build includes Prisma generate | `package.json` → `"build"` | `"prisma generate && react-router build"` so Vercel builds generate the client without relying on dashboard-only overrides |
+
+### Why it was required
+
+LS-002A blocker **B-01**: production assumed a long-running `react-router-serve` Node process. Vercel Hobby runs React Router as serverless Functions and expects the Vercel preset (and a Vercel-aware server entry when a custom `entry.server` is present). Without this wiring, a deploy would not produce a correct Vercel Function layout.
+
+### Blocker(s) resolved
+
+| ID | Status after FIX-001 |
+| --- | --- |
+| **B-01** | **Resolved** — Vercel React Router preset + build wiring in place; production build emits Vercel Node serverless output under `build/server/nodejs_*/` |
+
+### Build verification (local, post-fix)
+
+| Step | Result |
+| --- | --- |
+| `npx prisma generate` | **PASS** |
+| `npm run build` (`prisma generate && react-router build`) | **PASS** — client + Vercel Node SSR bundle |
+| `npm run typecheck` | **PASS** |
+
+### Intentionally unchanged
+
+- Shopify auth / OAuth / embedded / session / webhooks
+- Prisma schema, migrations, models, repositories
+- Decision engine, product costing, UI, routes, merchant workflow
+- `shopify.app.toml` production URLs
+- No Vercel deploy, Neon DB, DNS, or Partner Dashboard updates
+
+### Remaining blockers before deployment (LS-002B+)
+
+| ID | Blocker | Severity |
+| --- | --- | --- |
+| B-02 | `shopify.app.toml` App URL / redirects still `example.com` | Critical |
+| B-03 | OAuth redirect path `/api/auth` vs runtime `/auth` | Critical |
+| B-04 | Neon production database not created | Critical |
+| B-05 | No `directUrl` / pooling split in Prisma schema | High |
+| B-06 | Custom domain `app.sniporder.com` not pointed | Expected |
+| B-07 | Webhook API version vs `ApiVersion.July26` mismatch | Medium |
+| B-08 | ESLint errors (2) if CI enforces lint | Low–Medium |
+| Ops | Production env vars unset in Vercel (`DATABASE_URL`, `SHOPIFY_*`, `SCOPES`, etc.) | Critical (deploy-time) |
+
+**Next phase:** LS-002B — create Neon, configure Vercel project/env, deploy, then cut over domain + Shopify URLs.
+
+---
+
+*End of LS-002A-FIX-001. Compatibility prep only — no deployment performed.*
+
+---
+
+## LS-002C Result
+
+| Field | Value |
+| --- | --- |
+| **Phase ID** | LS-002C |
+| **Date** | 2026-08-05 |
+| **Scope** | Shopify production URL / OAuth configuration only |
+| **Deployed via CLI?** | No (`shopify app deploy` not run) |
+| **Partner Dashboard updated?** | No (manual follow-up) |
+
+### Updated URLs
+
+| Setting | Before | After |
+| --- | --- | --- |
+| `shopify.app.toml` → `application_url` | `https://example.com` | `https://shopify-profit-decision.vercel.app/` |
+| `shopify.app.toml` → `auth.redirect_urls` | `https://example.com/api/auth` | `https://shopify-profit-decision.vercel.app/auth/callback` |
+| `.env` → `SHOPIFY_APP_URL` | *(empty)* | `https://shopify-profit-decision.vercel.app/` |
+
+No remaining `example.com` references in `shopify.app.toml`. Production-related placeholders replaced with the live Vercel URL only. Unrelated docs (e.g. AP-001 historical findings) left unchanged.
+
+### OAuth verification
+
+| Check | Result |
+| --- | --- |
+| Runtime `authPathPrefix` | `/auth` (`app/shopify.server.ts`) — **unchanged** |
+| Library callback path | `/auth/callback` (derived from `authPathPrefix`) |
+| TOML redirect URL path | `/auth/callback` — **aligned** with runtime (no `/api/auth`) |
+| Authentication logic | **Not modified** |
+
+### Remaining launch blockers
+
+| ID | Blocker | Severity |
+| --- | --- | --- |
+| B-04 | Neon production database not created / `DATABASE_URL` not production | Critical |
+| B-05 | No `directUrl` / pooling split in Prisma schema | High |
+| B-06 | Custom domain `app.sniporder.com` not pointed | Expected (out of scope) |
+| B-07 | Webhook API version vs `ApiVersion.July26` mismatch | Medium |
+| B-08 | ESLint errors (2) if CI enforces lint | Low–Medium |
+| Ops | Partner Dashboard URLs not pushed (`shopify app deploy` intentionally skipped) | Critical (manual) |
+| Ops | Production secrets on Vercel (`SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `DATABASE_URL`, `SCOPES`, etc.) must match app | Critical (ops) |
+
+**Resolved this phase:** B-02 (example.com App URL / redirects), B-03 (`/api/auth` vs `/auth` mismatch in TOML).
+
+**Next (manual):** Verify Vercel Production env includes `SHOPIFY_APP_URL=https://shopify-profit-decision.vercel.app/`, then apply Partner Dashboard / `shopify app deploy` when ready — not performed in LS-002C.

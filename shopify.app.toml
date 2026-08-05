@@ -2,7 +2,7 @@
 
 client_id = "4dc6ef179915ccd910b31e34ebb3c03a"
 name = "ProfitPilot"
-application_url = "https://example.com"
+application_url = "https://shopify-profit-decision.vercel.app/"
 embedded = true
 
 [access_scopes]
@@ -32,8 +32,7 @@ api_version = "2026-01"
   compliance_topics = [ "shop/redact" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://shopify-profit-decision.vercel.app/auth/callback" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
