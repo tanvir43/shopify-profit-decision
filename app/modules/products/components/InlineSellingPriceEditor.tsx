@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MutableRefObject,
+} from "react";
 import { useFetcher } from "react-router";
 
 import { validateSellingPrice } from "~/modules/cost-profiles/lib/validateSellingPrice";
@@ -16,6 +23,8 @@ type InlineSellingPriceEditorProps = {
   totalCost: string | null;
   sellingPrice: string | null;
   sellingPriceDisplay: string;
+  /** Lets other UI trigger the same action as the Edit button. */
+  startEditRef?: MutableRefObject<(() => void) | null>;
 };
 
 function formatInputAmount(amount: string | null): string {
@@ -51,6 +60,7 @@ export function InlineSellingPriceEditor({
   totalCost,
   sellingPrice,
   sellingPriceDisplay,
+  startEditRef,
 }: InlineSellingPriceEditorProps) {
   const fetcher = useFetcher<SellingPriceActionData>();
   const [editing, setEditing] = useState(false);
@@ -64,6 +74,22 @@ export function InlineSellingPriceEditor({
   const handledSubmission = useRef(false);
 
   const isSaving = fetcher.state !== "idle";
+
+  const startEdit = useCallback(() => {
+    setPricingMethod("manual");
+    setEditing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!startEditRef) {
+      return;
+    }
+
+    startEditRef.current = startEdit;
+    return () => {
+      startEditRef.current = null;
+    };
+  }, [startEdit, startEditRef]);
 
   useEffect(() => {
     if (!editing) {
@@ -197,13 +223,7 @@ export function InlineSellingPriceEditor({
           <s-text color="subdued">Selling Price</s-text>
           <s-text type="strong">{sellingPriceDisplay}</s-text>
         </s-stack>
-        <s-button
-          variant="secondary"
-          onClick={() => {
-            setPricingMethod("manual");
-            setEditing(true);
-          }}
-        >
+        <s-button variant="secondary" onClick={startEdit}>
           Edit
         </s-button>
       </s-stack>

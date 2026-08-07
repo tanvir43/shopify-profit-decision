@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState, type MutableRefObject } from "react";
 
 import { PageLayout } from "~/components/PageLayout";
 import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
@@ -43,6 +43,21 @@ type ProductDecisionDashboardPageProps = {
 };
 
 /**
+ * True when Selling Price is present and greater than zero.
+ * Strategy configuration requires a usable selling price (LS-005B).
+ */
+function isSellingPriceReady(
+  sellingPrice: string | null | undefined,
+): boolean {
+  if (sellingPrice == null || sellingPrice === "") {
+    return false;
+  }
+
+  const value = Number(sellingPrice);
+  return Number.isFinite(value) && value > 0;
+}
+
+/**
  * Decision Workspace — live strategy simulation (PP-0015.2 / PP-0015.3 / PP-0015.6).
  * Strategy inputs are ephemeral; every active strategy feeds one projection
  * pipeline. Compatibility analysis runs after simulation and never blocks it.
@@ -68,6 +83,11 @@ export function ProductDecisionDashboardPage({
   const [strategies, setStrategies] = useState<StrategyInputs>(
     EMPTY_STRATEGY_INPUTS,
   );
+  const startSellingPriceEditRef = useRef<(() => void) | null>(null);
+
+  const handleSetSellingPrice = useCallback(() => {
+    startSellingPriceEditRef.current?.();
+  }, []);
 
   const outcome = simulateProjectedOutcome(
     { sellingPrice, totalCost },
@@ -100,6 +120,7 @@ export function ProductDecisionDashboardPage({
   const sellingPriceDisplay = hasSellingPrice
     ? formatCurrencyAmount(sellingPrice, currency)
     : "—";
+  const canConfigureStrategies = isSellingPriceReady(sellingPrice);
 
   return (
     <PageLayout title={productTitle}>
@@ -116,6 +137,8 @@ export function ProductDecisionDashboardPage({
           totalCost={totalCost}
           sellingPrice={sellingPrice}
           sellingPriceDisplay={sellingPriceDisplay}
+          showSellingPriceRequiredWarning={!canConfigureStrategies}
+          startSellingPriceEditRef={startSellingPriceEditRef}
         />
 
         <StickyWorkspaceHeader
@@ -132,6 +155,8 @@ export function ProductDecisionDashboardPage({
           currency={currency}
           strategies={strategies}
           onStrategiesChange={setStrategies}
+          configurationDisabled={!canConfigureStrategies}
+          onSetSellingPrice={handleSetSellingPrice}
         />
 
         <ProductCostingSection
@@ -162,6 +187,8 @@ function ProductSummarySection({
   totalCost,
   sellingPrice,
   sellingPriceDisplay,
+  showSellingPriceRequiredWarning,
+  startSellingPriceEditRef,
 }: {
   productTitle: string;
   statusLabel: string;
@@ -174,6 +201,8 @@ function ProductSummarySection({
   totalCost: string | null;
   sellingPrice: string | null;
   sellingPriceDisplay: string;
+  showSellingPriceRequiredWarning: boolean;
+  startSellingPriceEditRef: MutableRefObject<(() => void) | null>;
 }) {
   return (
     <s-section heading="Product Summary">
@@ -201,8 +230,16 @@ function ProductSummarySection({
             totalCost={totalCost}
             sellingPrice={sellingPrice}
             sellingPriceDisplay={sellingPriceDisplay}
+            startEditRef={startSellingPriceEditRef}
           />
         </s-stack>
+
+        {showSellingPriceRequiredWarning ? (
+          <s-banner tone="warning">
+            Selling Price is required before strategy simulations can be
+            configured.
+          </s-banner>
+        ) : null}
       </s-stack>
     </s-section>
   );
@@ -212,10 +249,14 @@ function StrategiesSection({
   currency,
   strategies,
   onStrategiesChange,
+  configurationDisabled,
+  onSetSellingPrice,
 }: {
   currency: string;
   strategies: StrategyInputs;
   onStrategiesChange: (next: StrategyInputs) => void;
+  configurationDisabled: boolean;
+  onSetSellingPrice: () => void;
 }) {
   return (
     <s-section heading="Decision Strategies">
@@ -228,6 +269,8 @@ function StrategiesSection({
           currency={currency}
           values={strategies}
           onChange={onStrategiesChange}
+          configurationDisabled={configurationDisabled}
+          onSetSellingPrice={onSetSellingPrice}
         />
       </s-stack>
     </s-section>
