@@ -3,6 +3,7 @@ import { Await } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
 
+import { EmptyStateOnboardingCard } from "./components/EmptyStateOnboardingCard";
 import {
   TrackedProductList,
   TrackedProductListSkeleton,
@@ -97,11 +98,17 @@ export function ProductsPage({ data }: ProductsPageProps) {
           </Await>
         </Suspense>
       ) : (
-        <TrackedProductList
-          products={[]}
-          onAddProducts={addProducts}
-          addProductsDisabled={isTracking}
-        />
+        <s-stack direction="block" gap="base">
+          <EmptyStateOnboardingCard
+            onAddProducts={addProducts}
+            addProductsDisabled={isTracking}
+          />
+          <TrackedProductList
+            products={[]}
+            onAddProducts={addProducts}
+            addProductsDisabled={isTracking}
+          />
+        </s-stack>
       )}
     </PageLayout>
   );
