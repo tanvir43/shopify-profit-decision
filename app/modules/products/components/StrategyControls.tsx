@@ -1,4 +1,10 @@
-import type { CSSProperties, ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import { getCurrencyDisplay } from "~/modules/cost-profiles/lib/formatCurrency";
 
@@ -25,13 +31,19 @@ type StrategyControlsProps = {
   currency: string;
   values: StrategyInputs;
   onChange: (next: StrategyInputs) => void;
-  /** When true, strategy cards stay visible but configuration is locked. */
-  configurationDisabled?: boolean;
+  /** When false, strategy edits stay local and are not applied to the simulation. */
+  sellingPriceReady: boolean;
   /** Same action as Product Summary “Edit” Selling Price. */
-  onSetSellingPrice?: () => void;
+  onSetSellingPrice: () => void;
 };
 
 const STRATEGY_LIBRARY_MODAL_ID = "strategy-library-modal";
+const SELLING_PRICE_REQUIRED_MODAL_ID = "selling-price-required-modal";
+
+type ModalElement = HTMLElement & {
+  showOverlay: () => void;
+  hideOverlay: () => void;
+};
 
 /** Shared width for strategy numeric inputs — consistent across all strategies. */
 const NUMERIC_FIELD_MAX_WIDTH = "320px";
@@ -162,21 +174,14 @@ const activeStrategyCardStyle: CSSProperties = {
   boxSizing: "border-box",
 };
 
-const disabledStrategyCardStyle: CSSProperties = {
-  opacity: 0.55,
-  height: "100%",
-};
-
 function StrategyRow({
   title,
   isActive,
-  configurationDisabled,
   onRemove,
   children,
 }: {
   title: string;
   isActive: boolean;
-  configurationDisabled: boolean;
   onRemove: () => void;
   children: ReactNode;
 }) {
@@ -189,14 +194,11 @@ function StrategyRow({
     >
       <s-stack direction="inline" gap="small-200" alignItems="center">
         <s-text type="strong">{title}</s-text>
-        {isActive && !configurationDisabled ? (
-          <s-badge tone="success">ACTIVE</s-badge>
-        ) : null}
+        {isActive ? <s-badge tone="success">ACTIVE</s-badge> : null}
       </s-stack>
       <s-button
         variant="tertiary"
         tone="neutral"
-        disabled={configurationDisabled}
         accessibilityLabel={`Remove ${title}`}
         onClick={onRemove}
       >
@@ -212,21 +214,15 @@ function StrategyRow({
     </s-stack>
   );
 
-  if (isActive && !configurationDisabled) {
+  if (isActive) {
     return <div style={activeStrategyCardStyle}>{body}</div>;
   }
 
-  const card = (
+  return (
     <s-box padding="small-100" borderWidth="base" borderRadius="base">
       {body}
     </s-box>
   );
-
-  if (configurationDisabled) {
-    return <div style={disabledStrategyCardStyle}>{card}</div>;
-  }
-
-  return card;
 }
 
 type FieldPatch = <K extends StrategyId>(
@@ -238,22 +234,17 @@ type StrategyControlRenderer = (args: {
   currencyPrefix: string;
   fields: StrategyFieldMap;
   patch: FieldPatch;
-  disabled: boolean;
 }) => ReactNode;
 
 const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
   {
-    discount: ({ currencyPrefix, fields, patch, disabled }) => (
+    discount: ({ currencyPrefix, fields, patch }) => (
       <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Discount Type"
           name="discountType"
           values={[fields.discount.type]}
-          disabled={disabled}
           onChange={(event: Event) => {
-            if (disabled) {
-              return;
-            }
             const next = readChoiceValues(event)[0];
             if (next === "percentage" || next === "fixed") {
               patch("discount", { type: next as DiscountType });
@@ -269,7 +260,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           value={fields.discount.value}
           prefix={fields.discount.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.discount.type === "percentage" ? "%" : undefined}
-          disabled={disabled}
           onValueChange={(value) => {
             patch("discount", { value });
           }}
@@ -277,7 +267,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    free_shipping: ({ currencyPrefix, fields, patch, disabled }) => {
+    free_shipping: ({ currencyPrefix, fields, patch }) => {
       const enabled = fields.free_shipping.enabled;
       const shippingValidation = enabled
         ? validateShippingCost(fields.free_shipping.shippingCost)
@@ -293,11 +283,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             label="Offer Free Shipping"
             name="freeShipping"
             checked={enabled}
-            disabled={disabled}
             onChange={(event: Event) => {
-              if (disabled) {
-                return;
-              }
               patch("free_shipping", { enabled: readChecked(event) });
             }}
           />
@@ -306,7 +292,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             name="shippingCost"
             value={fields.free_shipping.shippingCost}
             prefix={currencyPrefix}
-            disabled={disabled || !enabled}
+            disabled={!enabled}
             error={shippingCostError}
             onValueChange={(value) => {
               patch("free_shipping", { shippingCost: value });
@@ -321,30 +307,25 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       );
     },
 
-    bundle_offer: ({ currencyPrefix, fields, patch, disabled }) => (
+    bundle_offer: ({ currencyPrefix, fields, patch }) => (
       <StrategyNumericField
         label="Bundle Price"
         name="bundlePrice"
         value={fields.bundle_offer.bundlePrice}
         prefix={currencyPrefix}
-        disabled={disabled}
         onValueChange={(value) => {
           patch("bundle_offer", { bundlePrice: value });
         }}
       />
     ),
 
-    coupon: ({ currencyPrefix, fields, patch, disabled }) => (
+    coupon: ({ currencyPrefix, fields, patch }) => (
       <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Coupon Type"
           name="couponType"
           values={[fields.coupon.type]}
-          disabled={disabled}
           onChange={(event: Event) => {
-            if (disabled) {
-              return;
-            }
             const next = readChoiceValues(event)[0];
             if (next === "percentage" || next === "fixed") {
               patch("coupon", { type: next as DiscountType });
@@ -360,7 +341,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           value={fields.coupon.value}
           prefix={fields.coupon.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.coupon.type === "percentage" ? "%" : undefined}
-          disabled={disabled}
           onValueChange={(value) => {
             patch("coupon", { value });
           }}
@@ -368,17 +348,13 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    cashback: ({ currencyPrefix, fields, patch, disabled }) => (
+    cashback: ({ currencyPrefix, fields, patch }) => (
       <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Cashback Type"
           name="cashbackType"
           values={[fields.cashback.type]}
-          disabled={disabled}
           onChange={(event: Event) => {
-            if (disabled) {
-              return;
-            }
             const next = readChoiceValues(event)[0];
             if (next === "percentage" || next === "fixed") {
               patch("cashback", { type: next as DiscountType });
@@ -394,7 +370,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           value={fields.cashback.value}
           prefix={fields.cashback.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.cashback.type === "percentage" ? "%" : undefined}
-          disabled={disabled}
           onValueChange={(value) => {
             patch("cashback", { value });
           }}
@@ -402,13 +377,12 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    buy_x_get_y: ({ fields, patch, disabled }) => (
+    buy_x_get_y: ({ fields, patch }) => (
       <s-stack direction="inline" gap="small-200">
         <StrategyNumericField
           label="Buy"
           name="buyQty"
           value={fields.buy_x_get_y.buyQty}
-          disabled={disabled}
           onValueChange={(value) => {
             patch("buy_x_get_y", { buyQty: value });
           }}
@@ -417,7 +391,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           label="Get Free"
           name="getQty"
           value={fields.buy_x_get_y.getQty}
-          disabled={disabled}
           onValueChange={(value) => {
             patch("buy_x_get_y", { getQty: value });
           }}
@@ -425,33 +398,31 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    flash_sale: ({ fields, patch, disabled }) => (
+    flash_sale: ({ fields, patch }) => (
       <StrategyNumericField
         label="Percent Off"
         name="flashSalePercent"
         value={fields.flash_sale.percentOff}
         suffix="%"
-        disabled={disabled}
         onValueChange={(value) => {
           patch("flash_sale", { percentOff: value });
         }}
       />
     ),
 
-    referral_bonus: ({ currencyPrefix, fields, patch, disabled }) => (
+    referral_bonus: ({ currencyPrefix, fields, patch }) => (
       <StrategyNumericField
         label="Bonus Amount"
         name="referralBonus"
         value={fields.referral_bonus.amount}
         prefix={currencyPrefix}
-        disabled={disabled}
         onValueChange={(value) => {
           patch("referral_bonus", { amount: value });
         }}
       />
     ),
 
-    quantity_discount: ({ currencyPrefix, fields, patch, disabled }) => {
+    quantity_discount: ({ currencyPrefix, fields, patch }) => {
       const discountEntered = fields.quantity_discount.value.trim() !== "";
       const minQuantityValidation =
         discountEntered || fields.quantity_discount.minQuantity.trim()
@@ -475,7 +446,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             name="quantityDiscountMinQuantity"
             value={fields.quantity_discount.minQuantity}
             suffix="items"
-            disabled={disabled}
             error={
               minQuantityValidation && !minQuantityValidation.ok
                 ? minQuantityValidation.message
@@ -489,11 +459,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             label="Discount Type"
             name="quantityDiscountType"
             values={[fields.quantity_discount.type]}
-            disabled={disabled}
             onChange={(event: Event) => {
-              if (disabled) {
-                return;
-              }
               const next = readChoiceValues(event)[0];
               if (next === "percentage" || next === "fixed") {
                 patch("quantity_discount", { type: next as DiscountType });
@@ -515,7 +481,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             suffix={
               fields.quantity_discount.type === "percentage" ? "%" : undefined
             }
-            disabled={disabled}
             onValueChange={(value) => {
               patch("quantity_discount", { value });
             }}
@@ -527,7 +492,6 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
               name="quantityDiscountSimulatedQuantity"
               value={fields.quantity_discount.simulatedQuantity}
               suffix="items"
-              disabled={disabled}
               error={
                 simulatedQuantityValidation && !simulatedQuantityValidation.ok
                   ? simulatedQuantityValidation.message
@@ -542,26 +506,24 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       );
     },
 
-    gift_with_purchase: ({ currencyPrefix, fields, patch, disabled }) => (
+    gift_with_purchase: ({ currencyPrefix, fields, patch }) => (
       <StrategyNumericField
         label="Gift Cost"
         name="giftCost"
         value={fields.gift_with_purchase.giftCost}
         prefix={currencyPrefix}
-        disabled={disabled}
         onValueChange={(value) => {
           patch("gift_with_purchase", { giftCost: value });
         }}
       />
     ),
 
-    loyalty_reward: ({ fields, patch, disabled }) => (
+    loyalty_reward: ({ fields, patch }) => (
       <StrategyNumericField
         label="Reward Percent"
         name="loyaltyPercent"
         value={fields.loyalty_reward.percent}
         suffix="%"
-        disabled={disabled}
         onValueChange={(value) => {
           patch("loyalty_reward", { percent: value });
         }}
@@ -573,74 +535,83 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
  * Always-visible strategy controls. Activation is implied by the controls
  * themselves — no Configure / Apply / Save. Rendering is registry-driven so
  * new predefined strategies can be added without redesigning the page.
- * When Selling Price is missing, cards stay visible but configuration is locked.
+ *
+ * LS-005B: merchants may browse and enter values without a Selling Price, but
+ * those edits are not applied to the live simulation until a valid price exists.
  */
 export function StrategyControls({
   currency,
   values,
   onChange,
-  configurationDisabled = false,
+  sellingPriceReady,
   onSetSellingPrice,
 }: StrategyControlsProps) {
   const currencyPrefix = getCurrencyDisplay(currency);
-  const patch: FieldPatch = (strategyId, partial) => {
-    if (configurationDisabled) {
+  const [draft, setDraft] = useState<StrategyInputs | null>(null);
+  const modalRef = useRef<ModalElement | null>(null);
+  const modalOpenRef = useRef(false);
+  const wasSellingPriceReady = useRef(sellingPriceReady);
+
+  const displayValues =
+    !sellingPriceReady && draft != null ? draft : values;
+
+  useEffect(() => {
+    const becameReady = sellingPriceReady && !wasSellingPriceReady.current;
+    wasSellingPriceReady.current = sellingPriceReady;
+
+    if (!becameReady || draft == null) {
       return;
     }
-    onChange(patchStrategyFields(values, strategyId, partial));
+
+    onChange(draft);
+    setDraft(null);
+  }, [sellingPriceReady, draft, onChange]);
+
+  const commitChange = (next: StrategyInputs) => {
+    if (!sellingPriceReady) {
+      setDraft(next);
+      if (!modalOpenRef.current) {
+        modalRef.current?.showOverlay();
+      }
+      return;
+    }
+
+    onChange(next);
   };
 
-  const libraryStrategies = listLibraryStrategies(values.activeIds);
+  const patch: FieldPatch = (strategyId, partial) => {
+    commitChange(patchStrategyFields(displayValues, strategyId, partial));
+  };
+
+  const libraryStrategies = listLibraryStrategies(displayValues.activeIds);
 
   return (
     <s-stack direction="block" gap="small-100">
-      {configurationDisabled ? (
-        <s-box padding="base" borderWidth="base" borderRadius="base">
-          <s-stack direction="block" gap="base">
-            <s-stack direction="block" gap="small-100">
-              <s-text type="strong">
-                Please set a Selling Price before configuring pricing or
-                promotional strategies.
-              </s-text>
-              <s-paragraph color="subdued">
-                Your selling price is required to accurately calculate profit
-                and evaluate strategy performance.
-              </s-paragraph>
-            </s-stack>
-            <s-button variant="primary" onClick={onSetSellingPrice}>
-              Set Selling Price
-            </s-button>
-          </s-stack>
-        </s-box>
-      ) : null}
-
       <s-grid
         gap="small-100"
         gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))"
       >
-        {values.activeIds.map((strategyId) => {
+        {displayValues.activeIds.map((strategyId) => {
           const definition = getStrategyDefinition(strategyId);
           const renderControls = STRATEGY_CONTROL_RENDERERS[strategyId];
-          const active = isStrategyHighlightActive(strategyId, values.fields);
+          const active = isStrategyHighlightActive(
+            strategyId,
+            displayValues.fields,
+          );
 
           return (
             <StrategyRow
               key={strategyId}
               title={definition.label}
               isActive={active}
-              configurationDisabled={configurationDisabled}
               onRemove={() => {
-                if (configurationDisabled) {
-                  return;
-                }
-                onChange(removeStrategy(values, strategyId));
+                commitChange(removeStrategy(displayValues, strategyId));
               }}
             >
               {renderControls({
                 currencyPrefix,
-                fields: values.fields,
+                fields: displayValues.fields,
                 patch,
-                disabled: configurationDisabled,
               })}
             </StrategyRow>
           );
@@ -649,7 +620,6 @@ export function StrategyControls({
 
       <s-button
         variant="secondary"
-        disabled={configurationDisabled}
         commandFor={STRATEGY_LIBRARY_MODAL_ID}
         command="--show"
       >
@@ -690,14 +660,10 @@ export function StrategyControls({
                   </s-stack>
                   <s-button
                     variant="primary"
-                    disabled={configurationDisabled}
                     commandFor={STRATEGY_LIBRARY_MODAL_ID}
                     command="--hide"
                     onClick={() => {
-                      if (configurationDisabled) {
-                        return;
-                      }
-                      onChange(addStrategy(values, strategy.id));
+                      commitChange(addStrategy(displayValues, strategy.id));
                     }}
                   >
                     Add
@@ -712,6 +678,49 @@ export function StrategyControls({
           slot="secondary-actions"
           variant="secondary"
           commandFor={STRATEGY_LIBRARY_MODAL_ID}
+          command="--hide"
+        >
+          Close
+        </s-button>
+      </s-modal>
+
+      <s-modal
+        id={SELLING_PRICE_REQUIRED_MODAL_ID}
+        heading="Selling Price Required"
+        size="base"
+        ref={modalRef as never}
+        onShow={() => {
+          modalOpenRef.current = true;
+        }}
+        onHide={() => {
+          modalOpenRef.current = false;
+        }}
+      >
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph>
+            Please set a Selling Price before saving pricing or promotional
+            strategies.
+          </s-paragraph>
+          <s-paragraph color="subdued">
+            Your selling price is required to accurately calculate profit and
+            evaluate strategy performance.
+          </s-paragraph>
+        </s-stack>
+
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          onClick={() => {
+            modalRef.current?.hideOverlay();
+            onSetSellingPrice();
+          }}
+        >
+          Set Selling Price
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          variant="secondary"
+          commandFor={SELLING_PRICE_REQUIRED_MODAL_ID}
           command="--hide"
         >
           Close

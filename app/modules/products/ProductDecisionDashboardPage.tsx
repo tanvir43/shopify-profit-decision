@@ -44,7 +44,7 @@ type ProductDecisionDashboardPageProps = {
 
 /**
  * True when Selling Price is present and greater than zero.
- * Strategy configuration requires a usable selling price (LS-005B).
+ * Strategy saves require a usable selling price (LS-005B).
  */
 function isSellingPriceReady(
   sellingPrice: string | null | undefined,
@@ -120,7 +120,7 @@ export function ProductDecisionDashboardPage({
   const sellingPriceDisplay = hasSellingPrice
     ? formatCurrencyAmount(sellingPrice, currency)
     : "—";
-  const canConfigureStrategies = isSellingPriceReady(sellingPrice);
+  const sellingPriceReady = isSellingPriceReady(sellingPrice);
 
   return (
     <PageLayout title={productTitle}>
@@ -137,7 +137,7 @@ export function ProductDecisionDashboardPage({
           totalCost={totalCost}
           sellingPrice={sellingPrice}
           sellingPriceDisplay={sellingPriceDisplay}
-          showSellingPriceRequiredWarning={!canConfigureStrategies}
+          showSellingPriceRequiredWarning={!sellingPriceReady}
           startSellingPriceEditRef={startSellingPriceEditRef}
         />
 
@@ -155,7 +155,7 @@ export function ProductDecisionDashboardPage({
           currency={currency}
           strategies={strategies}
           onStrategiesChange={setStrategies}
-          configurationDisabled={!canConfigureStrategies}
+          sellingPriceReady={sellingPriceReady}
           onSetSellingPrice={handleSetSellingPrice}
         />
 
@@ -236,8 +236,8 @@ function ProductSummarySection({
 
         {showSellingPriceRequiredWarning ? (
           <s-banner tone="warning">
-            Selling Price is required before strategy simulations can be
-            configured.
+            Selling Price is required before strategy configurations can be
+            saved.
           </s-banner>
         ) : null}
       </s-stack>
@@ -249,13 +249,13 @@ function StrategiesSection({
   currency,
   strategies,
   onStrategiesChange,
-  configurationDisabled,
+  sellingPriceReady,
   onSetSellingPrice,
 }: {
   currency: string;
   strategies: StrategyInputs;
   onStrategiesChange: (next: StrategyInputs) => void;
-  configurationDisabled: boolean;
+  sellingPriceReady: boolean;
   onSetSellingPrice: () => void;
 }) {
   return (
@@ -269,7 +269,7 @@ function StrategiesSection({
           currency={currency}
           values={strategies}
           onChange={onStrategiesChange}
-          configurationDisabled={configurationDisabled}
+          sellingPriceReady={sellingPriceReady}
           onSetSellingPrice={onSetSellingPrice}
         />
       </s-stack>

@@ -23,8 +23,9 @@ Track launch-blocker and reviewer-experience work for ProfitPilot App Store subm
 | Field | Value |
 | --- | --- |
 | **Status** | ✅ Complete |
-| **Rule** | Strategy configuration disabled when Selling Price is missing, null, undefined, or ≤ 0 |
-| **Strategies UX** | Cards remain visible (disabled appearance); message + “Set Selling Price” CTA; inputs/actions locked |
+| **Rule** | Strategy changes are not applied when Selling Price is missing, null, undefined, or ≤ 0 |
+| **Strategies UX** | Cards stay fully browsable and editable; save/apply is blocked with a validation modal |
+| **Validation Modal** | “Selling Price Required” + body copy + primary “Set Selling Price” CTA |
 | **CTA** | “Set Selling Price” reuses the Product Summary inline Selling Price Edit handler |
 | **Product Summary** | Existing `s-banner` warning tone when Selling Price is not ready |
 | **Implementation** | `ProductDecisionDashboardPage.tsx`, `StrategyControls.tsx`, `InlineSellingPriceEditor.tsx` |
