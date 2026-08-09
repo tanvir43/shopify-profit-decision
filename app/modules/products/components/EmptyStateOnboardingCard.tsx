@@ -35,7 +35,8 @@ export function EmptyStateOnboardingCard() {
               affects your expected profit.
             </s-paragraph>
             <s-paragraph>
-              Instead of guessing, make pricing decisions backed by numbers.
+              Instead of guessing, make pricing decisions backed by your real
+              numbers.
             </s-paragraph>
           </s-stack>
 
