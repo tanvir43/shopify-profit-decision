@@ -178,6 +178,15 @@ const activeStrategyCardStyle: CSSProperties = {
   boxSizing: "border-box",
 };
 
+/** Inactive card chrome — same wrapper element as active to avoid input remount. */
+const inactiveStrategyCardStyle: CSSProperties = {
+  padding: "var(--p-space-100, 4px)",
+  borderRadius: "var(--p-border-radius-200, 8px)",
+  border: "var(--p-border-width-025, 1px) solid var(--p-color-border, #c9cccf)",
+  height: "100%",
+  boxSizing: "border-box",
+};
+
 function StrategyRow({
   title,
   isActive,
@@ -218,14 +227,11 @@ function StrategyRow({
     </s-stack>
   );
 
-  if (isActive) {
-    return <div style={activeStrategyCardStyle}>{body}</div>;
-  }
-
+  // Stable outer element: swapping s-box ↔ div on isActive remounted inputs and stole focus.
   return (
-    <s-box padding="small-100" borderWidth="base" borderRadius="base">
+    <div style={isActive ? activeStrategyCardStyle : inactiveStrategyCardStyle}>
       {body}
-    </s-box>
+    </div>
   );
 }
 
