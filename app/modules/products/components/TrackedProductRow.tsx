@@ -5,15 +5,22 @@ import {
 } from "../lib/productStatus";
 import type { TrackedProductWorkspaceItem } from "../types/TrackedProductWorkspaceItem";
 
-type TrackedProductRowProps = TrackedProductWorkspaceItem;
+type TrackedProductRowProps = TrackedProductWorkspaceItem & {
+  /** TEMP-001 — temporary Launch Sprint testing helper; remove before App Store submission. */
+  onStopTracking?: (product: TrackedProductWorkspaceItem) => void;
+  stopTrackingDisabled?: boolean;
+};
 
 export function TrackedProductRow({
   trackedProductId,
+  shopifyProductId,
   title,
   status,
   imageUrl,
   imageAlt,
   trackedAt,
+  onStopTracking,
+  stopTrackingDisabled = false,
 }: TrackedProductRowProps) {
   const { label, tone } = formatProductStatus(status);
   const unavailable = isTrackedProductUnavailable(status);
@@ -45,6 +52,26 @@ export function TrackedProductRow({
         </s-stack>
         <s-stack direction="inline" gap="base" alignItems="center">
           <s-text color="subdued">Tracked {trackedAt}</s-text>
+          {onStopTracking ? (
+            <s-button
+              variant="tertiary"
+              tone="critical"
+              disabled={stopTrackingDisabled}
+              onClick={() =>
+                onStopTracking({
+                  trackedProductId,
+                  shopifyProductId,
+                  title,
+                  status,
+                  imageUrl,
+                  imageAlt,
+                  trackedAt,
+                })
+              }
+            >
+              Stop Tracking
+            </s-button>
+          ) : null}
           <s-button
             href={unavailable ? undefined : trackedProductHref(trackedProductId)}
             variant="secondary"

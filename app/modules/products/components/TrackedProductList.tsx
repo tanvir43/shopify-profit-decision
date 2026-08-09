@@ -1,7 +1,22 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFetcher, useRevalidator } from "react-router";
+
 import { TrackedProductRow } from "./TrackedProductRow";
 import { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
 import { TrackedProductsEmptyState } from "./TrackedProductsEmptyState";
 import type { TrackedProductWorkspaceItem } from "../types/TrackedProductWorkspaceItem";
+
+/** TEMP-001 — remove before App Store submission. */
+export const STOP_TRACKING_MODAL_ID = "temp-stop-tracking-modal";
+
+export type StopTrackingActionData =
+  | { ok: true }
+  | { ok: false; error: string };
+
+type ModalElement = HTMLElement & {
+  showOverlay: () => void;
+  hideOverlay: () => void;
+};
 
 type TrackedProductListProps = {
   products: TrackedProductWorkspaceItem[];
@@ -14,6 +29,76 @@ export function TrackedProductList({
   onAddProducts,
   addProductsDisabled = false,
 }: TrackedProductListProps) {
+  const fetcher = useFetcher<StopTrackingActionData>();
+  const revalidator = useRevalidator();
+  const modalRef = useRef<ModalElement | null>(null);
+  const handledSubmission = useRef(false);
+  const [pendingProduct, setPendingProduct] =
+    useState<TrackedProductWorkspaceItem | null>(null);
+
+  const isStopping = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (fetcher.state === "submitting") {
+      handledSubmission.current = false;
+      return;
+    }
+
+    if (
+      fetcher.state === "idle" &&
+      fetcher.data != null &&
+      !handledSubmission.current
+    ) {
+      handledSubmission.current = true;
+
+      if (fetcher.data.ok) {
+        modalRef.current?.hideOverlay();
+        setPendingProduct(null);
+        shopify.toast.show(
+          "Product removed from ProfitPilot. Your Shopify product was not changed.",
+        );
+        revalidator.revalidate();
+      }
+    }
+  }, [fetcher.state, fetcher.data, revalidator]);
+
+  const handleStopTrackingRequest = useCallback(
+    (product: TrackedProductWorkspaceItem) => {
+      if (isStopping) {
+        return;
+      }
+
+      setPendingProduct(product);
+      requestAnimationFrame(() => {
+        modalRef.current?.showOverlay();
+      });
+    },
+    [isStopping],
+  );
+
+  const handleConfirmStopTracking = useCallback(() => {
+    if (!pendingProduct || isStopping) {
+      return;
+    }
+
+    fetcher.submit(
+      {
+        intent: "stop-tracking",
+        shopifyProductId: pendingProduct.shopifyProductId,
+      },
+      { method: "post" },
+    );
+  }, [fetcher, isStopping, pendingProduct]);
+
+  const handleCancelStopTracking = useCallback(() => {
+    if (isStopping) {
+      return;
+    }
+
+    modalRef.current?.hideOverlay();
+    setPendingProduct(null);
+  }, [isStopping]);
+
   if (products.length === 0) {
     return (
       <TrackedProductsEmptyState
@@ -24,11 +109,62 @@ export function TrackedProductList({
   }
 
   return (
-    <s-stack direction="block" gap="small-100">
-      {products.map((product) => (
-        <TrackedProductRow key={product.trackedProductId} {...product} />
-      ))}
-    </s-stack>
+    <>
+      <s-stack direction="block" gap="small-100">
+        {products.map((product) => (
+          <TrackedProductRow
+            key={product.trackedProductId}
+            {...product}
+            onStopTracking={handleStopTrackingRequest}
+            stopTrackingDisabled={isStopping}
+          />
+        ))}
+      </s-stack>
+
+      {/* TEMP-001 — temporary Launch Sprint testing helper; remove before App Store submission. */}
+      <s-modal
+        id={STOP_TRACKING_MODAL_ID}
+        heading="Stop Tracking Product?"
+        size="base"
+        ref={modalRef as never}
+      >
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph>
+            This will remove the product from ProfitPilot only.
+          </s-paragraph>
+          <s-paragraph>
+            Your Shopify product will NOT be deleted or modified.
+          </s-paragraph>
+          <s-paragraph color="subdued">
+            You can track this product again at any time.
+          </s-paragraph>
+          {fetcher.data != null && !fetcher.data.ok ? (
+            <s-banner tone="critical" heading="Couldn't stop tracking">
+              <s-text>{fetcher.data.error}</s-text>
+            </s-banner>
+          ) : null}
+        </s-stack>
+
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          tone="critical"
+          disabled={isStopping || pendingProduct == null}
+          loading={isStopping}
+          onClick={handleConfirmStopTracking}
+        >
+          Stop Tracking
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          variant="secondary"
+          disabled={isStopping}
+          onClick={handleCancelStopTracking}
+        >
+          Cancel
+        </s-button>
+      </s-modal>
+    </>
   );
 }
 

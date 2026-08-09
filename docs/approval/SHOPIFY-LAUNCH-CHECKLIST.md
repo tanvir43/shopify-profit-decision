@@ -6,6 +6,7 @@ Track launch-blocker and reviewer-experience work for ProfitPilot App Store subm
 | --- | --- | --- |
 | LS-005A | Empty State Onboarding | ✅ Complete |
 | LS-005B | Selling Price Required Before Strategy Setup | ✅ Complete |
+| TEMP-001 | Temporary Stop Tracking (dev/testing only) | ⚠️ Remove before App Store submission |
 
 ## LS-005A — Empty State Onboarding
 
@@ -30,3 +31,14 @@ Track launch-blocker and reviewer-experience work for ProfitPilot App Store subm
 | **Product Summary** | Existing `s-banner` warning tone when Selling Price is not ready |
 | **Implementation** | `ProductDecisionDashboardPage.tsx`, `StrategyControls.tsx`, `InlineSellingPriceEditor.tsx` |
 | **Scope** | Workflow validation only — no calculation, Decision Engine, DB, auth, or Shopify config changes |
+
+## TEMP-001 — Temporary Stop Tracking (Development Only)
+
+| Field | Value |
+| --- | --- |
+| **Status** | ⚠️ Temporary — **must be removed before App Store submission** |
+| **Purpose** | Launch Sprint testing helper to remove a product from ProfitPilot without touching Shopify |
+| **UI** | “Stop Tracking” on Tracked Products rows + confirmation modal + success toast |
+| **Deletes** | TrackedProduct, related CostProfile, related CostItems (cascade). No Shopify Admin Product API calls |
+| **Implementation** | `TrackedProductRow.tsx`, `TrackedProductList.tsx`, stop-tracking branch in `app.products.tsx` action |
+| **Before submission** | Remove the Stop Tracking button, confirmation dialog, and temporary UI/testing code. Backend delete may remain for internal use |
