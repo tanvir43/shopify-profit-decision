@@ -18,6 +18,10 @@ export function validateDetailedSetupAmount(
   }
 
   const normalized = trimmed.replace(/,/g, "");
+  if (normalized.startsWith("-")) {
+    return { ok: false, message: "Product cost cannot be negative." };
+  }
+
   if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
     return {
       ok: false,
@@ -27,7 +31,7 @@ export function validateDetailedSetupAmount(
 
   const value = Number(normalized);
   if (!Number.isFinite(value) || value < 0) {
-    return { ok: false, message: "Amount must be zero or greater." };
+    return { ok: false, message: "Product cost cannot be negative." };
   }
 
   if (value > MAX_AMOUNT) {

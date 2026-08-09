@@ -170,10 +170,11 @@ function applyMoneyOff(
   }
 
   if (type === "percentage") {
-    return Math.max(0, revenue * (1 - Math.min(amount, 100) / 100));
+    return revenue * (1 - Math.min(amount, 100) / 100);
   }
 
-  return Math.max(0, revenue - amount);
+  // Do not clamp below $0 — callers must validate impossible strategies.
+  return revenue - amount;
 }
 
 function applyPercentOff(revenue: number, rawPercent: string): number {
@@ -182,7 +183,7 @@ function applyPercentOff(revenue: number, rawPercent: string): number {
     return revenue;
   }
 
-  return Math.max(0, revenue * (1 - Math.min(percent, 100) / 100));
+  return revenue * (1 - Math.min(percent, 100) / 100);
 }
 
 type SimulationDraft = {

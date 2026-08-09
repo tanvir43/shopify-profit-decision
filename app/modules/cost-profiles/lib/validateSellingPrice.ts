@@ -15,6 +15,10 @@ export function validateSellingPrice(raw: string): SellingPriceValidation {
   }
 
   const normalized = trimmed.replace(/,/g, "");
+  if (normalized.startsWith("-")) {
+    return { ok: false, message: "Selling price cannot be negative." };
+  }
+
   if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
     return {
       ok: false,

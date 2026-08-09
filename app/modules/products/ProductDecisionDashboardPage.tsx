@@ -21,9 +21,12 @@ import {
 import {
   EMPTY_STRATEGY_INPUTS,
   simulateProjectedOutcome,
+  type ProjectedOutcome,
   type StrategyInputs,
 } from "./lib/simulateProjectedOutcome";
+import type { StrategyId } from "./lib/strategyCatalog";
 import { analyzeStrategyCompatibility } from "./lib/strategyCompatibility";
+import { validateStrategyBusinessRules } from "./lib/validateStrategyBusinessRules";
 
 export type ProductDecisionDashboardData = {
   trackedProductId: string;
@@ -84,15 +87,32 @@ export function ProductDecisionDashboardPage({
     EMPTY_STRATEGY_INPUTS,
   );
   const startSellingPriceEditRef = useRef<(() => void) | null>(null);
+  const lastValidOutcomeRef = useRef<ProjectedOutcome>({
+    profitLoss: null,
+    marginPercent: null,
+    status: null,
+  });
 
   const handleSetSellingPrice = useCallback(() => {
     startSellingPriceEditRef.current?.();
   }, []);
 
-  const outcome = simulateProjectedOutcome(
+  const strategyValidation = validateStrategyBusinessRules(
     { sellingPrice, totalCost },
     strategies,
   );
+
+  const nextOutcome = simulateProjectedOutcome(
+    { sellingPrice, totalCost },
+    strategies,
+  );
+
+  // Pause simulation updates while a strategy creates an impossible scenario.
+  if (!strategyValidation.hasBlockingError) {
+    lastValidOutcomeRef.current = nextOutcome;
+  }
+
+  const outcome = lastValidOutcomeRef.current;
 
   const compatibilityWarnings = analyzeStrategyCompatibility(strategies);
 
@@ -157,6 +177,8 @@ export function ProductDecisionDashboardPage({
           onStrategiesChange={setStrategies}
           sellingPriceReady={sellingPriceReady}
           onSetSellingPrice={handleSetSellingPrice}
+          fieldErrors={strategyValidation.errors}
+          fieldWarnings={strategyValidation.warnings}
         />
 
         <ProductCostingSection
@@ -251,12 +273,16 @@ function StrategiesSection({
   onStrategiesChange,
   sellingPriceReady,
   onSetSellingPrice,
+  fieldErrors,
+  fieldWarnings,
 }: {
   currency: string;
   strategies: StrategyInputs;
   onStrategiesChange: (next: StrategyInputs) => void;
   sellingPriceReady: boolean;
   onSetSellingPrice: () => void;
+  fieldErrors: Partial<Record<StrategyId, string>>;
+  fieldWarnings: Partial<Record<StrategyId, string>>;
 }) {
   return (
     <s-section heading="Decision Strategies">
@@ -271,6 +297,8 @@ function StrategiesSection({
           onChange={onStrategiesChange}
           sellingPriceReady={sellingPriceReady}
           onSetSellingPrice={onSetSellingPrice}
+          fieldErrors={fieldErrors}
+          fieldWarnings={fieldWarnings}
         />
       </s-stack>
     </s-section>

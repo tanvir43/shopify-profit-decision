@@ -35,6 +35,10 @@ type StrategyControlsProps = {
   sellingPriceReady: boolean;
   /** Same action as Product Summary “Edit” Selling Price. */
   onSetSellingPrice: () => void;
+  /** Business-rule field errors that block simulation updates. */
+  fieldErrors?: Partial<Record<StrategyId, string>>;
+  /** Business-rule warnings that never block simulation. */
+  fieldWarnings?: Partial<Record<StrategyId, string>>;
 };
 
 const STRATEGY_LIBRARY_MODAL_ID = "strategy-library-modal";
@@ -234,11 +238,13 @@ type StrategyControlRenderer = (args: {
   currencyPrefix: string;
   fields: StrategyFieldMap;
   patch: FieldPatch;
+  fieldError?: string;
+  fieldWarning?: string;
 }) => ReactNode;
 
 const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
   {
-    discount: ({ currencyPrefix, fields, patch }) => (
+    discount: ({ currencyPrefix, fields, patch, fieldError }) => (
       <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Discount Type"
@@ -260,6 +266,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           value={fields.discount.value}
           prefix={fields.discount.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.discount.type === "percentage" ? "%" : undefined}
+          error={fieldError}
           onValueChange={(value) => {
             patch("discount", { value });
           }}
@@ -267,7 +274,12 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    free_shipping: ({ currencyPrefix, fields, patch }) => {
+    free_shipping: ({
+      currencyPrefix,
+      fields,
+      patch,
+      fieldWarning,
+    }) => {
       const enabled = fields.free_shipping.enabled;
       const shippingValidation = enabled
         ? validateShippingCost(fields.free_shipping.shippingCost)
@@ -303,23 +315,27 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
               Deducted from projected profit when Free Shipping is on.
             </s-text>
           ) : null}
+          {enabled && fieldWarning ? (
+            <s-banner tone="warning">{fieldWarning}</s-banner>
+          ) : null}
         </s-stack>
       );
     },
 
-    bundle_offer: ({ currencyPrefix, fields, patch }) => (
+    bundle_offer: ({ currencyPrefix, fields, patch, fieldError }) => (
       <StrategyNumericField
         label="Bundle Price"
         name="bundlePrice"
         value={fields.bundle_offer.bundlePrice}
         prefix={currencyPrefix}
+        error={fieldError}
         onValueChange={(value) => {
           patch("bundle_offer", { bundlePrice: value });
         }}
       />
     ),
 
-    coupon: ({ currencyPrefix, fields, patch }) => (
+    coupon: ({ currencyPrefix, fields, patch, fieldError }) => (
       <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Coupon Type"
@@ -341,6 +357,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           value={fields.coupon.value}
           prefix={fields.coupon.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.coupon.type === "percentage" ? "%" : undefined}
+          error={fieldError}
           onValueChange={(value) => {
             patch("coupon", { value });
           }}
@@ -348,7 +365,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    cashback: ({ currencyPrefix, fields, patch }) => (
+    cashback: ({ currencyPrefix, fields, patch, fieldError }) => (
       <s-stack direction="block" gap="small-100">
         <s-choice-list
           label="Cashback Type"
@@ -370,6 +387,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           value={fields.cashback.value}
           prefix={fields.cashback.type === "fixed" ? currencyPrefix : undefined}
           suffix={fields.cashback.type === "percentage" ? "%" : undefined}
+          error={fieldError}
           onValueChange={(value) => {
             patch("cashback", { value });
           }}
@@ -398,12 +416,13 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       </s-stack>
     ),
 
-    flash_sale: ({ fields, patch }) => (
+    flash_sale: ({ fields, patch, fieldError }) => (
       <StrategyNumericField
         label="Percent Off"
         name="flashSalePercent"
         value={fields.flash_sale.percentOff}
         suffix="%"
+        error={fieldError}
         onValueChange={(value) => {
           patch("flash_sale", { percentOff: value });
         }}
@@ -422,7 +441,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       />
     ),
 
-    quantity_discount: ({ currencyPrefix, fields, patch }) => {
+    quantity_discount: ({ currencyPrefix, fields, patch, fieldError }) => {
       const discountEntered = fields.quantity_discount.value.trim() !== "";
       const minQuantityValidation =
         discountEntered || fields.quantity_discount.minQuantity.trim()
@@ -481,6 +500,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             suffix={
               fields.quantity_discount.type === "percentage" ? "%" : undefined
             }
+            error={fieldError}
             onValueChange={(value) => {
               patch("quantity_discount", { value });
             }}
@@ -545,6 +565,8 @@ export function StrategyControls({
   onChange,
   sellingPriceReady,
   onSetSellingPrice,
+  fieldErrors,
+  fieldWarnings,
 }: StrategyControlsProps) {
   const currencyPrefix = getCurrencyDisplay(currency);
   const [draft, setDraft] = useState<StrategyInputs | null>(null);
@@ -612,6 +634,8 @@ export function StrategyControls({
                 currencyPrefix,
                 fields: displayValues.fields,
                 patch,
+                fieldError: fieldErrors?.[strategyId],
+                fieldWarning: fieldWarnings?.[strategyId],
               })}
             </StrategyRow>
           );

@@ -17,6 +17,10 @@ export function validateQuickStartTotalCost(
   }
 
   const normalized = trimmed.replace(/,/g, "");
+  if (normalized.startsWith("-")) {
+    return { ok: false, message: "Product cost cannot be negative." };
+  }
+
   if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
     return {
       ok: false,
