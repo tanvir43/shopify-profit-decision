@@ -8,7 +8,7 @@ export const APP_NAME = "ProfitPilot";
  */
 export const ALL_NAV_ITEMS = [
   { label: "Dashboard", href: "/app", enabled: false },
-  { label: "Products", href: "/app/products", enabled: true },
+  { label: "Tracked Products", href: "/app/products", enabled: true },
   { label: "Pricing", href: "/app/pricing", enabled: false },
   { label: "Discounts", href: "/app/discounts", enabled: false },
   { label: "Settings", href: "/app/settings", enabled: false },

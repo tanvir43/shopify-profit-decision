@@ -23,7 +23,7 @@ export default function App() {
       <div className={styles.content}>
         <h1 className={styles.heading}>ProfitPilot</h1>
         <p className={styles.text}>
-          Make better pricing and profit decisions for your Shopify store.
+          Track costs. Test pricing. Maximize profit.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">

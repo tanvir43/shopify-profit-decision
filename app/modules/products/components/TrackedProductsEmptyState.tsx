@@ -15,7 +15,7 @@ export function TrackedProductsEmptyState({
       <s-grid gap="base" justifyItems="center" paddingBlock="large-400">
         <s-grid justifyItems="center" maxInlineSize="450px" gap="base">
           <s-stack alignItems="center" gap="small-200">
-            <s-heading>No products added yet</s-heading>
+            <s-heading>No Tracked Products added yet</s-heading>
             <s-paragraph>
               Choose the Shopify products you want to optimize with ProfitPilot.
             </s-paragraph>

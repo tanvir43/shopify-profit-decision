@@ -99,10 +99,7 @@ export function ProductsPage({ data }: ProductsPageProps) {
         </Suspense>
       ) : (
         <s-stack direction="block" gap="base">
-          <EmptyStateOnboardingCard
-            onAddProducts={addProducts}
-            addProductsDisabled={isTracking}
-          />
+          <EmptyStateOnboardingCard />
           <TrackedProductList
             products={[]}
             onAddProducts={addProducts}
