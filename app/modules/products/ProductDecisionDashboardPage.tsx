@@ -21,7 +21,6 @@ import {
 import {
   EMPTY_STRATEGY_INPUTS,
   simulateProjectedOutcome,
-  type ProjectedOutcome,
   type StrategyInputs,
 } from "./lib/simulateProjectedOutcome";
 import type { StrategyId } from "./lib/strategyCatalog";
@@ -63,7 +62,8 @@ function isSellingPriceReady(
 /**
  * Decision Workspace — live strategy simulation (PP-0015.2 / PP-0015.3 / PP-0015.6).
  * Strategy inputs are ephemeral; every active strategy feeds one projection
- * pipeline. Compatibility analysis runs after simulation and never blocks it.
+ * pipeline. Blocking business-rule errors pause all financial projections.
+ * Compatibility analysis runs after simulation and never blocks it.
  * Sticky Workspace Header keeps product + outcome essentials visible while scrolling.
  * Selling price edits inline; cost breakdown edits in a modal (PP-0015.4.5).
  */
@@ -87,11 +87,6 @@ export function ProductDecisionDashboardPage({
     EMPTY_STRATEGY_INPUTS,
   );
   const startSellingPriceEditRef = useRef<(() => void) | null>(null);
-  const lastValidOutcomeRef = useRef<ProjectedOutcome>({
-    profitLoss: null,
-    marginPercent: null,
-    status: null,
-  });
 
   const handleSetSellingPrice = useCallback(() => {
     startSellingPriceEditRef.current?.();
@@ -102,17 +97,11 @@ export function ProductDecisionDashboardPage({
     strategies,
   );
 
-  const nextOutcome = simulateProjectedOutcome(
-    { sellingPrice, totalCost },
-    strategies,
-  );
-
-  // Pause simulation updates while a strategy creates an impossible scenario.
-  if (!strategyValidation.hasBlockingError) {
-    lastValidOutcomeRef.current = nextOutcome;
-  }
-
-  const outcome = lastValidOutcomeRef.current;
+  // Blocking validation pauses all financial projections — no prior result is kept.
+  const calculationsPaused = strategyValidation.hasBlockingError;
+  const outcome = calculationsPaused
+    ? { profitLoss: null, marginPercent: null, status: null }
+    : simulateProjectedOutcome({ sellingPrice, totalCost }, strategies);
 
   const compatibilityWarnings = analyzeStrategyCompatibility(strategies);
 
@@ -167,7 +156,16 @@ export function ProductDecisionDashboardPage({
           sellingPriceDisplay={sellingPriceDisplay}
           outcome={outcome}
           currency={currency}
+          calculationsPaused={calculationsPaused}
         />
+
+        {calculationsPaused ? (
+          <s-banner tone="warning">
+            Profit calculation is temporarily unavailable because one or more
+            active strategies contain invalid values. Please correct the
+            highlighted fields to continue.
+          </s-banner>
+        ) : null}
 
         <CompatibilityWarnings warnings={compatibilityWarnings} />
 

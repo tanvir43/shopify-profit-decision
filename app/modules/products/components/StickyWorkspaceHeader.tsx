@@ -15,6 +15,8 @@ type StickyWorkspaceHeaderProps = {
   sellingPriceDisplay: string;
   outcome: ProjectedOutcome;
   currency: string;
+  /** When true, hide financial projections and show paused status. */
+  calculationsPaused?: boolean;
 };
 
 /**
@@ -126,8 +128,12 @@ export function StickyWorkspaceHeader({
   sellingPriceDisplay,
   outcome,
   currency,
+  calculationsPaused = false,
 }: StickyWorkspaceHeaderProps) {
-  const statusLabel = outcome.status ?? "—";
+  const statusLabel = calculationsPaused
+    ? "Calculation Paused"
+    : (outcome.status ?? "—");
+  const displayStatus = calculationsPaused ? null : outcome.status;
   const [resultOpacity, setResultOpacity] = useState(1);
   const prevProfitLossRef = useRef(outcome.profitLoss);
   const isFirstRenderRef = useRef(true);
@@ -181,10 +187,13 @@ export function StickyWorkspaceHeader({
             <div style={metricStyle}>
               <s-text color="subdued">Profit / Loss</s-text>
               <div style={profitRowStyle}>
-                <span style={profitValueStyle(outcome.status)}>
-                  {formatProfitLoss(outcome.profitLoss, currency)}
+                <span style={profitValueStyle(displayStatus)}>
+                  {formatProfitLoss(
+                    calculationsPaused ? null : outcome.profitLoss,
+                    currency,
+                  )}
                 </span>
-                <s-badge tone={statusTone(outcome.status)}>
+                <s-badge tone={statusTone(displayStatus)}>
                   {statusLabel}
                 </s-badge>
               </div>
@@ -192,7 +201,9 @@ export function StickyWorkspaceHeader({
             <div style={metricStyle}>
               <s-text color="subdued">Margin</s-text>
               <span style={marginValueStyle}>
-                {formatMarginPercent(outcome.marginPercent)}
+                {formatMarginPercent(
+                  calculationsPaused ? null : outcome.marginPercent,
+                )}
               </span>
             </div>
           </div>
