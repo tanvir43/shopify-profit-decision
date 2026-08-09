@@ -14,6 +14,9 @@ export type StrategyBusinessValidation = {
 const NEGATIVE_SELLING_PRICE_STRATEGY_MESSAGE =
   "This strategy would reduce the selling price below $0, which is not possible in a real sale. Please adjust the strategy.";
 
+const PERCENTAGE_OVER_100_MESSAGE =
+  "Discount percentage cannot exceed 100%. A discount greater than 100% would require paying customers to take your product, which isn't possible in a real sale.";
+
 const CASHBACK_EXCEEDS_MESSAGE =
   "This cashback exceeds the selling price and would result in a negative sale value. Please reduce the cashback amount.";
 
@@ -66,6 +69,11 @@ function parsePositiveInt(raw: string): number | null {
   return value;
 }
 
+function isPercentageOver100(rawValue: string): boolean {
+  const amount = parseNonNegativeAmount(rawValue);
+  return amount != null && amount > 100;
+}
+
 /**
  * Money-off without silent clamping — used only to detect impossible prices.
  */
@@ -80,7 +88,7 @@ function moneyOffWithoutClamp(
   }
 
   if (type === "percentage") {
-    return revenue * (1 - Math.min(amount, 100) / 100);
+    return revenue * (1 - amount / 100);
   }
 
   return revenue - amount;
@@ -95,7 +103,7 @@ function percentOffWithoutClamp(
     return null;
   }
 
-  return revenue * (1 - Math.min(percent, 100) / 100);
+  return revenue * (1 - percent / 100);
 }
 
 function cashbackAmount(
@@ -149,6 +157,13 @@ export function validateStrategyBusinessRules(
 
     switch (strategyId) {
       case "discount": {
+        if (
+          fields.discount.type === "percentage" &&
+          isPercentageOver100(fields.discount.value)
+        ) {
+          errors.discount = PERCENTAGE_OVER_100_MESSAGE;
+          break;
+        }
         const next = moneyOffWithoutClamp(
           revenue,
           fields.discount.type,
@@ -162,6 +177,13 @@ export function validateStrategyBusinessRules(
         break;
       }
       case "coupon": {
+        if (
+          fields.coupon.type === "percentage" &&
+          isPercentageOver100(fields.coupon.value)
+        ) {
+          errors.coupon = PERCENTAGE_OVER_100_MESSAGE;
+          break;
+        }
         const next = moneyOffWithoutClamp(
           revenue,
           fields.coupon.type,
@@ -175,6 +197,10 @@ export function validateStrategyBusinessRules(
         break;
       }
       case "flash_sale": {
+        if (isPercentageOver100(fields.flash_sale.percentOff)) {
+          errors.flash_sale = PERCENTAGE_OVER_100_MESSAGE;
+          break;
+        }
         const next = percentOffWithoutClamp(
           revenue,
           fields.flash_sale.percentOff,
@@ -203,6 +229,14 @@ export function validateStrategyBusinessRules(
           discountValue <= 0 ||
           simulatedQuantity == null
         ) {
+          break;
+        }
+
+        if (
+          fields.quantity_discount.type === "percentage" &&
+          isPercentageOver100(fields.quantity_discount.value)
+        ) {
+          errors.quantity_discount = PERCENTAGE_OVER_100_MESSAGE;
           break;
         }
 

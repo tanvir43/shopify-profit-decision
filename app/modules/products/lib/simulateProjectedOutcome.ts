@@ -170,7 +170,8 @@ function applyMoneyOff(
   }
 
   if (type === "percentage") {
-    return revenue * (1 - Math.min(amount, 100) / 100);
+    // Do not silently cap — callers must validate impossible percentages.
+    return revenue * (1 - amount / 100);
   }
 
   // Do not clamp below $0 — callers must validate impossible strategies.
@@ -183,7 +184,8 @@ function applyPercentOff(revenue: number, rawPercent: string): number {
     return revenue;
   }
 
-  return revenue * (1 - Math.min(percent, 100) / 100);
+  // Do not silently cap — callers must validate impossible percentages.
+  return revenue * (1 - percent / 100);
 }
 
 type SimulationDraft = {
