@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type {
   OutcomeStatus,
@@ -58,6 +58,36 @@ const productNameTextStyle: CSSProperties = {
   maxWidth: "100%",
 };
 
+/** Groups Profit/Loss, Status, and Margin as one calculated-result focus. */
+const resultGroupStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-end",
+  gap: "var(--p-space-300, 12px) var(--p-space-400, 16px)",
+  minWidth: 0,
+  transition: "opacity 250ms ease",
+};
+
+const profitRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "var(--p-space-200, 8px)",
+  minWidth: 0,
+};
+
+const profitValueBaseStyle: CSSProperties = {
+  fontSize: "1.25rem",
+  fontWeight: 700,
+  lineHeight: 1.2,
+};
+
+const marginValueStyle: CSSProperties = {
+  fontSize: "1.05rem",
+  fontWeight: 600,
+  lineHeight: 1.2,
+};
+
 function statusTone(
   status: OutcomeStatus | null,
 ): "success" | "critical" | "neutral" {
@@ -68,6 +98,23 @@ function statusTone(
     return "critical";
   }
   return "neutral";
+}
+
+/** Existing Polaris success / critical text tokens — no new colors. */
+function profitValueStyle(status: OutcomeStatus | null): CSSProperties {
+  if (status === "Profit") {
+    return {
+      ...profitValueBaseStyle,
+      color: "var(--p-color-text-success, #014b40)",
+    };
+  }
+  if (status === "Loss") {
+    return {
+      ...profitValueBaseStyle,
+      color: "var(--p-color-text-critical, #8e0b21)",
+    };
+  }
+  return profitValueBaseStyle;
 }
 
 /**
@@ -81,6 +128,31 @@ export function StickyWorkspaceHeader({
   currency,
 }: StickyWorkspaceHeaderProps) {
   const statusLabel = outcome.status ?? "—";
+  const [resultOpacity, setResultOpacity] = useState(1);
+  const prevProfitLossRef = useRef(outcome.profitLoss);
+  const isFirstRenderRef = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      prevProfitLossRef.current = outcome.profitLoss;
+      return;
+    }
+
+    if (prevProfitLossRef.current === outcome.profitLoss) {
+      return;
+    }
+
+    prevProfitLossRef.current = outcome.profitLoss;
+    setResultOpacity(0.45);
+    const restoreId = window.setTimeout(() => {
+      setResultOpacity(1);
+    }, 40);
+
+    return () => {
+      window.clearTimeout(restoreId);
+    };
+  }, [outcome.profitLoss]);
 
   return (
     <div style={stickyStyle}>
@@ -105,21 +177,24 @@ export function StickyWorkspaceHeader({
             <s-text color="subdued">Selling Price</s-text>
             <s-text type="strong">{sellingPriceDisplay}</s-text>
           </div>
-          <div style={metricStyle}>
-            <s-text color="subdued">Profit / Loss</s-text>
-            <s-text type="strong">
-              {formatProfitLoss(outcome.profitLoss, currency)}
-            </s-text>
-          </div>
-          <div style={metricStyle}>
-            <s-text color="subdued">Margin</s-text>
-            <s-text type="strong">
-              {formatMarginPercent(outcome.marginPercent)}
-            </s-text>
-          </div>
-          <div style={metricStyle}>
-            <s-text color="subdued">Status</s-text>
-            <s-badge tone={statusTone(outcome.status)}>{statusLabel}</s-badge>
+          <div style={{ ...resultGroupStyle, opacity: resultOpacity }}>
+            <div style={metricStyle}>
+              <s-text color="subdued">Profit / Loss</s-text>
+              <div style={profitRowStyle}>
+                <span style={profitValueStyle(outcome.status)}>
+                  {formatProfitLoss(outcome.profitLoss, currency)}
+                </span>
+                <s-badge tone={statusTone(outcome.status)}>
+                  {statusLabel}
+                </s-badge>
+              </div>
+            </div>
+            <div style={metricStyle}>
+              <s-text color="subdued">Margin</s-text>
+              <span style={marginValueStyle}>
+                {formatMarginPercent(outcome.marginPercent)}
+              </span>
+            </div>
           </div>
         </div>
       </s-box>
