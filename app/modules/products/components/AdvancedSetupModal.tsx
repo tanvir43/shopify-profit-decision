@@ -11,16 +11,16 @@ import { trackedProductHref } from "../lib/productStatus";
 import type { DetailedSetupActionData } from "../DetailedSetupPage";
 import {
   CostBreakdownForm,
+  emptyAmounts,
   type CostBreakdownAmounts,
   type CostBreakdownFieldErrors,
 } from "./CostBreakdownForm";
 
-export const COST_BREAKDOWN_MODAL_ID = "cost-breakdown-modal";
+export const ADVANCED_SETUP_MODAL_ID = "advanced-setup-modal";
 
-type CostBreakdownModalProps = {
+type AdvancedSetupModalProps = {
   trackedProductId: string;
   currency: string;
-  initialAmounts: CostBreakdownAmounts;
 };
 
 type ModalElement = HTMLElement & {
@@ -40,23 +40,23 @@ function cloneAmounts(amounts: CostBreakdownAmounts): CostBreakdownAmounts {
 }
 
 /**
- * Edit Cost Breakdown in a Polaris modal — reuses CostBreakdownForm (PP-0015.4.5).
+ * Advanced Setup cost breakdown in a modal — avoids a full route navigation.
  */
-export function CostBreakdownModal({
+export function AdvancedSetupModal({
   trackedProductId,
   currency,
-  initialAmounts,
-}: CostBreakdownModalProps) {
+}: AdvancedSetupModalProps) {
   const fetcher = useFetcher<DetailedSetupActionData>();
   const modalRef = useRef<ModalElement | null>(null);
   const allowClose = useRef(true);
   const isOpen = useRef(false);
   const handledSubmission = useRef(false);
-  const baselineRef = useRef(cloneAmounts(initialAmounts));
-  const amountsRef = useRef(cloneAmounts(initialAmounts));
+  const empty = emptyAmounts();
+  const baselineRef = useRef(cloneAmounts(empty));
+  const amountsRef = useRef(cloneAmounts(empty));
 
   const [amounts, setAmounts] = useState<CostBreakdownAmounts>(() =>
-    cloneAmounts(initialAmounts),
+    cloneAmounts(empty),
   );
   const [fieldErrors, setFieldErrors] = useState<CostBreakdownFieldErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -75,22 +75,13 @@ export function CostBreakdownModal({
     setSaveError(null);
   }, [setAmountsBoth]);
 
-  const syncFromProps = useCallback(
-    (nextInitial: CostBreakdownAmounts) => {
-      baselineRef.current = cloneAmounts(nextInitial);
-      setAmountsBoth(cloneAmounts(nextInitial));
-      setFieldErrors({});
-      setSaveError(null);
-    },
-    [setAmountsBoth],
-  );
-
-  useEffect(() => {
-    // Keep closed modal in sync with revalidated workspace data.
-    if (!isOpen.current) {
-      syncFromProps(initialAmounts);
-    }
-  }, [initialAmounts, syncFromProps]);
+  const clearForm = useCallback(() => {
+    const next = emptyAmounts();
+    baselineRef.current = cloneAmounts(next);
+    setAmountsBoth(cloneAmounts(next));
+    setFieldErrors({});
+    setSaveError(null);
+  }, [setAmountsBoth]);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -184,20 +175,18 @@ export function CostBreakdownModal({
   }, [isSaving, resetToBaseline]);
 
   const handleShow = useCallback(() => {
-    // Re-show after a blocked Escape must keep in-progress edits.
     if (isOpen.current) {
       return;
     }
 
     isOpen.current = true;
     allowClose.current = false;
-    syncFromProps(initialAmounts);
-  }, [initialAmounts, syncFromProps]);
+    clearForm();
+  }, [clearForm]);
 
   const handleHide = useCallback(() => {
     const dirty = !amountsEqual(amountsRef.current, baselineRef.current);
 
-    // Escape / dismiss: only close when there are no unsaved changes.
     if (!allowClose.current && dirty) {
       requestAnimationFrame(() => {
         modalRef.current?.showOverlay();
@@ -212,8 +201,8 @@ export function CostBreakdownModal({
 
   return (
     <s-modal
-      id={COST_BREAKDOWN_MODAL_ID}
-      heading="Edit Cost Breakdown"
+      id={ADVANCED_SETUP_MODAL_ID}
+      heading="Advanced Setup"
       size="large"
       ref={modalRef as never}
       onShow={handleShow}
@@ -235,7 +224,7 @@ export function CostBreakdownModal({
         loading={isSaving}
         onClick={handleSave}
       >
-        Save
+        Save Cost Breakdown
       </s-button>
       <s-button
         slot="secondary-actions"

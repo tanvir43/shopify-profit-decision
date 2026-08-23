@@ -12,6 +12,10 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { PageLayout } from "~/components/PageLayout";
 import { resolveShopCurrency } from "~/lib/shopCurrency.server";
+import {
+  fetchShopSetupContext,
+  getCachedShopCurrency,
+} from "~/lib/shopSetupContext.server";
 import { CostProfileValidationError } from "~/modules/cost-profiles";
 import { detailedSetupService } from "~/modules/cost-profiles/services/detailedSetupService.server";
 import {
@@ -23,7 +27,6 @@ import {
   emptyAmounts,
   type DetailedSetupActionData,
 } from "~/modules/products";
-import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
 
@@ -31,8 +34,8 @@ import { authenticate } from "~/shopify.server";
  * Detailed Cost Builder (PP-0013).
  *
  * URL: /app/products/:trackedProductId/detailed-setup
- * Trailing `_` on `$trackedProductId_` opts out of nesting under the product
- * details layout (same ADR-005 pattern as products_ / cost-profile).
+ * First-time onboarding prefers the Advanced Setup modal on the product
+ * details page; this route remains for deep links and CostBreakdownModal saves.
  */
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -51,11 +54,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Tracked product not found.", { status: 404 });
   }
 
-  const currency = await resolveShopCurrency(admin);
-  const profile = await detailedSetupService.getDetailedSetupProfile(
-    session.shop,
-    tracked.shopifyProductId,
-  );
+  const [profile, setup] = await Promise.all([
+    detailedSetupService.getDetailedSetupProfile(
+      session.shop,
+      tracked.shopifyProductId,
+    ),
+    fetchShopSetupContext(admin, session.shop, [tracked.shopifyProductId]),
+  ]);
 
   const amounts = emptyAmounts();
   if (profile) {
@@ -67,14 +72,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     }
   }
 
-  const products = await fetchProductsByIds(admin, [tracked.shopifyProductId]);
-  const enrichment = products.get(tracked.shopifyProductId);
+  const enrichment = setup.products.get(tracked.shopifyProductId);
   const productTitle = enrichment?.title ?? tracked.shopifyProductId;
 
   return {
     trackedProductId: tracked.id,
     productTitle,
-    currency: profile?.currency ?? currency,
+    currency: profile?.currency ?? setup.currency,
     amounts,
   };
 };
@@ -107,7 +111,11 @@ export const action = async ({
     amounts[type] = typeof raw === "string" ? raw : "";
   }
 
-  const currency = await resolveShopCurrency(admin);
+  const currencyRaw = formData.get("currency");
+  const currency =
+    (typeof currencyRaw === "string" && currencyRaw.trim()) ||
+    getCachedShopCurrency(session.shop) ||
+    (await resolveShopCurrency(admin, session.shop));
 
   try {
     await detailedSetupService.saveDetailedBreakdown({

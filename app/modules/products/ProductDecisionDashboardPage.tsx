@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState, type MutableRefObject } from "react";
+import { Suspense, useCallback, useRef, useState, type MutableRefObject } from "react";
+import { Await } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
-import { useIsNavigatingTo } from "~/hooks";
 import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
 import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileMode";
 import type { CostItemType } from "~/modules/cost-profiles/types/CostItemType";
@@ -12,14 +12,18 @@ import {
   COST_BREAKDOWN_MODAL_ID,
 } from "./components/CostBreakdownModal";
 import { InlineSellingPriceEditor } from "./components/InlineSellingPriceEditor";
+import {
+  QuickStartModal,
+  QUICK_START_MODAL_ID,
+} from "./components/QuickStartModal";
 import { StickyWorkspaceHeader } from "./components/StickyWorkspaceHeader";
 import { StrategyControls } from "./components/StrategyControls";
 import {
   formatProductStatus,
-  quickStartHref,
   trackedProductsListHref,
   type ProductStatusTone,
 } from "./lib/productStatus";
+import type { ProductDetailsEnrichment } from "./services/productDetailsEnrichment.server";
 import {
   EMPTY_STRATEGY_INPUTS,
   simulateProjectedOutcome,
@@ -40,38 +44,57 @@ export type ProductDecisionDashboardData = {
   totalCost: string | null;
   sellingPrice: string | null;
   costAmounts: Record<CostItemType, string>;
+  enrichment?: Promise<ProductDetailsEnrichment>;
 };
 
 type ProductDecisionDashboardPageProps = {
   data: ProductDecisionDashboardData;
 };
 
-/**
- * True when Selling Price is present and greater than zero.
- * Strategy saves require a usable selling price (LS-005B).
- */
-function isSellingPriceReady(
-  sellingPrice: string | null | undefined,
-): boolean {
-  if (sellingPrice == null || sellingPrice === "") {
-    return false;
-  }
-
-  const value = Number(sellingPrice);
-  return Number.isFinite(value) && value > 0;
-}
+type DashboardContentProps = Omit<
+  ProductDecisionDashboardData,
+  "enrichment"
+>;
 
 /**
  * Decision Workspace — live strategy simulation (PP-0015.2 / PP-0015.3 / PP-0015.6).
- * Strategy inputs are ephemeral; every active strategy feeds one projection
- * pipeline. Blocking business-rule errors pause all financial projections.
- * Compatibility analysis runs after simulation and never blocks it.
- * Sticky Workspace Header keeps product + outcome essentials visible while scrolling.
- * Selling price edits inline; cost breakdown edits in a modal (PP-0015.4.5).
+ * Shopify enrichment is deferred so the workspace appears immediately after save.
  */
 export function ProductDecisionDashboardPage({
   data,
 }: ProductDecisionDashboardPageProps) {
+  const { enrichment, ...syncData } = data;
+
+  if (!enrichment) {
+    return <ProductDecisionDashboardContent data={syncData} />;
+  }
+
+  return (
+    <Suspense
+      fallback={<ProductDecisionDashboardContent data={syncData} />}
+    >
+      <Await resolve={enrichment}>
+        {(resolved) => (
+          <ProductDecisionDashboardContent
+            data={{
+              ...syncData,
+              productTitle: resolved.productTitle,
+              productStatus: resolved.productStatus,
+              imageUrl: resolved.imageUrl,
+              imageAlt: resolved.imageAlt,
+            }}
+          />
+        )}
+      </Await>
+    </Suspense>
+  );
+}
+
+function ProductDecisionDashboardContent({
+  data,
+}: {
+  data: DashboardContentProps;
+}) {
   const {
     trackedProductId,
     mode,
@@ -156,7 +179,6 @@ export function ProductDecisionDashboardPage({
           showSellingPriceRequiredWarning={!sellingPriceReady}
           startSellingPriceEditRef={startSellingPriceEditRef}
           isQuickStart={isQuickStart}
-          editTotalCostHref={quickStartHref(trackedProductId)}
         />
 
         <StickyWorkspaceHeader
@@ -194,8 +216,32 @@ export function ProductDecisionDashboardPage({
         currency={currency}
         initialAmounts={costAmounts}
       />
+      {isQuickStart ? (
+        <QuickStartModal
+          trackedProductId={trackedProductId}
+          currency={currency}
+          initialTotalCost={totalCost}
+          heading="Edit Total Cost"
+          saveLabel="Save"
+        />
+      ) : null}
     </PageLayout>
   );
+}
+
+/**
+ * True when Selling Price is present and greater than zero.
+ * Strategy saves require a usable selling price (LS-005B).
+ */
+function isSellingPriceReady(
+  sellingPrice: string | null | undefined,
+): boolean {
+  if (sellingPrice == null || sellingPrice === "") {
+    return false;
+  }
+
+  const value = Number(sellingPrice);
+  return Number.isFinite(value) && value > 0;
 }
 
 function ProductSummarySection({
@@ -213,7 +259,6 @@ function ProductSummarySection({
   showSellingPriceRequiredWarning,
   startSellingPriceEditRef,
   isQuickStart,
-  editTotalCostHref,
 }: {
   productTitle: string;
   statusLabel: string;
@@ -229,12 +274,7 @@ function ProductSummarySection({
   showSellingPriceRequiredWarning: boolean;
   startSellingPriceEditRef: MutableRefObject<(() => void) | null>;
   isQuickStart: boolean;
-  editTotalCostHref: string;
 }) {
-  const isNavigatingToEditTotal = useIsNavigatingTo(
-    isQuickStart ? editTotalCostHref : undefined,
-  );
-
   return (
     <s-section heading="Product Summary">
       <s-stack direction="block" gap="base">
@@ -258,9 +298,9 @@ function ProductSummarySection({
             </s-stack>
             {isQuickStart ? (
               <s-button
-                href={editTotalCostHref}
                 variant="secondary"
-                loading={isNavigatingToEditTotal}
+                commandFor={QUICK_START_MODAL_ID}
+                command="--show"
               >
                 Edit Total Cost
               </s-button>
@@ -286,8 +326,8 @@ function ProductSummarySection({
 
         {showSellingPriceRequiredWarning ? (
           <s-banner tone="warning">
-            Selling Price is required before strategy configurations can be
-            saved.
+            Selling Price is required before evaluation of price strategy
+            simulation.
           </s-banner>
         ) : null}
       </s-stack>

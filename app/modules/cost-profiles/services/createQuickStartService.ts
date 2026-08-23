@@ -1,8 +1,5 @@
 import type { CostProfileRepository } from "../repositories/CostProfileRepository";
-import {
-  CostProfileNotFoundError,
-  CostProfileValidationError,
-} from "../errors";
+import { CostProfileValidationError } from "../errors";
 import type { CostProfile, OpenQuickStartInput } from "../types";
 import { validateQuickStartTotalCost } from "../lib/validateQuickStartTotalCost";
 import type { QuickStartService } from "./QuickStartService";
@@ -52,23 +49,40 @@ export function createQuickStartService(
       });
     },
 
-    async saveQuickStartCost(
-      shop: string,
-      productId: string,
-      totalCostRaw: string,
-    ): Promise<CostProfile> {
-      const totalCost = parseQuickStartTotalCost(totalCostRaw);
+    async saveQuickStartCost(input: {
+      shop: string;
+      productId: string;
+      totalCostRaw: string;
+      currency: string;
+    }): Promise<CostProfile> {
+      const totalCost = parseQuickStartTotalCost(input.totalCostRaw);
+      assertCurrency(input.currency);
 
       const existing = await repository.getCostProfileByTrackedProductId(
-        shop,
-        productId,
+        input.shop,
+        input.productId,
       );
 
       if (!existing) {
-        throw new CostProfileNotFoundError(shop, productId);
+        return repository.createQuickStartCostProfile({
+          shop: input.shop,
+          productId: input.productId,
+          currency: input.currency,
+          totalCost,
+        });
       }
 
-      return repository.updateQuickStartCost(shop, productId, totalCost);
+      if (existing.mode !== "QUICK_START") {
+        throw new CostProfileValidationError(
+          "This product already has a detailed cost breakdown.",
+        );
+      }
+
+      return repository.updateQuickStartCost(
+        input.shop,
+        input.productId,
+        totalCost,
+      );
     },
 
     async getQuickStartProfile(

@@ -11,12 +11,15 @@ export interface QuickStartService {
 
   /**
    * Validate and persist totalCost for a Quick Start profile.
+   * Creates the profile on first save when none exists yet.
    */
-  saveQuickStartCost(
-    shop: string,
-    productId: string,
-    totalCostRaw: string,
-  ): Promise<CostProfile>;
+  saveQuickStartCost(input: {
+    shop: string;
+    productId: string;
+    totalCostRaw: string;
+    /** Required when creating a new profile. */
+    currency: string;
+  }): Promise<CostProfile>;
 
   /**
    * Load a Quick Start profile if one exists for this product.

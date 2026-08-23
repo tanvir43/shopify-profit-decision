@@ -62,7 +62,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       return { profile: toPageData(existing) };
     }
 
-    const currency = await resolveShopCurrency(admin);
+    const currency = await resolveShopCurrency(admin, shop);
     const profile = await costProfileService.ensureForProduct({
       shop,
       productId,

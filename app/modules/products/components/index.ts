@@ -4,6 +4,14 @@ export {
   CostBreakdownModal,
   COST_BREAKDOWN_MODAL_ID,
 } from "./CostBreakdownModal";
+export {
+  AdvancedSetupModal,
+  ADVANCED_SETUP_MODAL_ID,
+} from "./AdvancedSetupModal";
+export {
+  QuickStartModal,
+  QUICK_START_MODAL_ID,
+} from "./QuickStartModal";
 export { InlineSellingPriceEditor } from "./InlineSellingPriceEditor";
 export {
   SellingPriceMethodFields,

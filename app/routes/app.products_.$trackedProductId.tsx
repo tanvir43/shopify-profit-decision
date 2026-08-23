@@ -1,4 +1,8 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type {
+  ActionFunctionArgs,
+  HeadersFunction,
+  LoaderFunctionArgs,
+} from "react-router";
 import {
   isRouteErrorResponse,
   useLoaderData,
@@ -7,6 +11,8 @@ import {
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { PageLayout } from "~/components/PageLayout";
+import { resolveShopCurrency } from "~/lib/shopCurrency.server";
+import { getCachedShopCurrency } from "~/lib/shopSetupContext.server";
 import { costProfileService } from "~/modules/cost-profiles/services/costProfileService.server";
 import { categoryToCostItemType } from "~/modules/cost-profiles/types/CostItemType";
 import {
@@ -15,7 +21,8 @@ import {
   ProductOnboardingPage,
 } from "~/modules/products";
 import { hasProductCost } from "~/modules/products/lib/productStatus";
-import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
+import { handleProductDetailsAction } from "~/modules/products/services/productDetailsActions.server";
+import { loadProductDetailsEnrichment } from "~/modules/products/services/productDetailsEnrichment.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
 
@@ -50,30 +57,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     (profile?.mode === "QUICK_START" || profile?.mode === "DETAILED") &&
     hasProductCost(profile.totalCost)
   ) {
-    let productTitle = tracked.shopifyProductId;
-    let productStatus = "UNKNOWN";
-    let imageUrl: string | null = null;
-    let imageAlt: string | null = null;
-
-    try {
-      const products = await fetchProductsByIds(admin, [
-        tracked.shopifyProductId,
-      ]);
-      const enrichment = products.get(tracked.shopifyProductId);
-
-      if (enrichment) {
-        productTitle = enrichment.title;
-        productStatus = enrichment.status;
-        imageUrl = enrichment.imageUrl;
-        imageAlt = enrichment.imageAlt;
-      } else {
-        productTitle = "Product unavailable";
-        productStatus = "UNAVAILABLE";
-      }
-    } catch {
-      // Keep fallback identity when Shopify enrichment fails.
-    }
-
     const costAmounts = emptyAmounts();
     for (const item of profile.items) {
       const type = categoryToCostItemType(item.category);
@@ -86,22 +69,36 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       view: "dashboard" as const,
       trackedProductId: tracked.id,
       mode: profile.mode,
-      productTitle,
-      productStatus,
-      imageUrl,
-      imageAlt,
+      productTitle: tracked.shopifyProductId,
+      productStatus: "UNKNOWN",
+      imageUrl: null,
+      imageAlt: null,
       currency: profile.currency,
       totalCost: profile.totalCost,
       sellingPrice: profile.sellingPrice,
       costAmounts,
+      enrichment: loadProductDetailsEnrichment(
+        admin,
+        tracked.shopifyProductId,
+      ),
     };
   }
+
+  const currency =
+    profile?.currency ??
+    getCachedShopCurrency(session.shop) ??
+    (await resolveShopCurrency(admin, session.shop));
 
   return {
     view: "onboarding" as const,
     trackedProductId: tracked.id,
+    currency,
+    totalCost: profile?.totalCost ?? null,
   };
 };
+
+export const action = (args: ActionFunctionArgs) =>
+  handleProductDetailsAction(args);
 
 export default function ProductDetailsRoute() {
   const data = useLoaderData<typeof loader>();

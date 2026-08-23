@@ -72,10 +72,10 @@ export function QuickStartPage({ data }: QuickStartPageProps) {
     setFieldError(null);
 
     fetcher.submit(
-      { totalCost: result.value },
+      { totalCost: result.value, currency },
       { method: "post" },
     );
-  }, [fetcher, value]);
+  }, [currency, fetcher, value]);
 
   const handleChange = useCallback(
     (event: Event) => {

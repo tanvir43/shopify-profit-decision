@@ -109,13 +109,13 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
 
     setFieldErrors({});
 
-    const formPayload: Record<string, string> = {};
+    const formPayload: Record<string, string> = { currency };
     for (const type of COST_ITEM_TYPES) {
       formPayload[type] = amounts[type];
     }
 
     fetcher.submit(formPayload, { method: "post" });
-  }, [amounts, fetcher]);
+  }, [amounts, currency, fetcher]);
 
   return (
     <PageLayout

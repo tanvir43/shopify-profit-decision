@@ -1,10 +1,12 @@
-import { useIsNavigatingTo } from "~/hooks";
-
 type OnboardingChoiceCardProps = {
   title: string;
   description: string;
   buttonLabel: string;
-  href: string;
+  /** Opens a modal via Polaris commandFor (preferred for instant open). */
+  commandFor?: string;
+  command?: "--show" | "--auto" | "--hide" | "--toggle" | "--copy";
+  /** Fallback navigation when a dedicated page is still used. */
+  href?: string;
 };
 
 /**
@@ -14,10 +16,10 @@ export function OnboardingChoiceCard({
   title,
   description,
   buttonLabel,
+  commandFor,
+  command = "--show",
   href,
 }: OnboardingChoiceCardProps) {
-  const isNavigating = useIsNavigatingTo(href);
-
   return (
     <s-box padding="large-100" borderWidth="base" borderRadius="base">
       <s-stack direction="block" gap="base">
@@ -25,9 +27,19 @@ export function OnboardingChoiceCard({
           <s-heading>{title}</s-heading>
           <s-paragraph>{description}</s-paragraph>
         </s-stack>
-        <s-button href={href} variant="primary" loading={isNavigating}>
-          {buttonLabel}
-        </s-button>
+        {commandFor ? (
+          <s-button
+            variant="primary"
+            commandFor={commandFor}
+            command={command}
+          >
+            {buttonLabel}
+          </s-button>
+        ) : (
+          <s-button href={href} variant="primary">
+            {buttonLabel}
+          </s-button>
+        )}
       </s-stack>
     </s-box>
   );
