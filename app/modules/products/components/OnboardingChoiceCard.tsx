@@ -1,3 +1,5 @@
+import { useIsNavigatingTo } from "~/hooks";
+
 type OnboardingChoiceCardProps = {
   title: string;
   description: string;
@@ -14,6 +16,8 @@ export function OnboardingChoiceCard({
   buttonLabel,
   href,
 }: OnboardingChoiceCardProps) {
+  const isNavigating = useIsNavigatingTo(href);
+
   return (
     <s-box padding="large-100" borderWidth="base" borderRadius="base">
       <s-stack direction="block" gap="base">
@@ -21,7 +25,7 @@ export function OnboardingChoiceCard({
           <s-heading>{title}</s-heading>
           <s-paragraph>{description}</s-paragraph>
         </s-stack>
-        <s-button href={href} variant="primary">
+        <s-button href={href} variant="primary" loading={isNavigating}>
           {buttonLabel}
         </s-button>
       </s-stack>

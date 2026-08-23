@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useFetcher, useRevalidator } from "react-router";
+import { useFetcher, useRevalidator, useSearchParams } from "react-router";
 
 import { TrackedProductRow } from "./TrackedProductRow";
 import { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
@@ -8,6 +8,9 @@ import type { TrackedProductWorkspaceItem } from "../types/TrackedProductWorkspa
 
 /** TEMP-001 — remove before App Store submission. */
 export const STOP_TRACKING_MODAL_ID = "temp-stop-tracking-modal";
+
+/** How long the back-navigation highlight stays visible. */
+const HIGHLIGHT_DURATION_MS = 10000;
 
 export type StopTrackingActionData =
   | { ok: true }
@@ -31,12 +34,41 @@ export function TrackedProductList({
 }: TrackedProductListProps) {
   const fetcher = useFetcher<StopTrackingActionData>();
   const revalidator = useRevalidator();
+  const [searchParams, setSearchParams] = useSearchParams();
   const modalRef = useRef<ModalElement | null>(null);
   const handledSubmission = useRef(false);
   const [pendingProduct, setPendingProduct] =
     useState<TrackedProductWorkspaceItem | null>(null);
+  const [highlightedProductId, setHighlightedProductId] = useState<
+    string | null
+  >(null);
 
   const isStopping = fetcher.state !== "idle";
+  const highlightFromUrl = searchParams.get("highlight")?.trim() || null;
+
+  useEffect(() => {
+    if (!highlightFromUrl) {
+      return;
+    }
+
+    setHighlightedProductId(highlightFromUrl);
+
+    const clearTimer = window.setTimeout(() => {
+      setHighlightedProductId(null);
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete("highlight");
+          return next;
+        },
+        { replace: true },
+      );
+    }, HIGHLIGHT_DURATION_MS);
+
+    return () => {
+      window.clearTimeout(clearTimer);
+    };
+  }, [highlightFromUrl, setSearchParams]);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -117,6 +149,7 @@ export function TrackedProductList({
             {...product}
             onStopTracking={handleStopTrackingRequest}
             stopTrackingDisabled={isStopping}
+            highlighted={product.trackedProductId === highlightedProductId}
           />
         ))}
       </s-stack>

@@ -8,11 +8,15 @@ import {
   TrackedProductList,
   TrackedProductListSkeleton,
 } from "./components/TrackedProductList";
-import { useAddTrackedProducts } from "./hooks/useAddTrackedProducts";
+import {
+  ALREADY_TRACKED_MESSAGE,
+  useAddTrackedProducts,
+} from "./hooks/useAddTrackedProducts";
 import type { TrackedProductWorkspaceData } from "./services/trackedProductWorkspace.server";
 
 export type TrackedProductsPageData = {
   trackedCount: number;
+  trackedShopifyProductIds: string[];
   workspace: Promise<TrackedProductWorkspaceData>;
 };
 
@@ -52,8 +56,15 @@ function WorkspaceContent({
  */
 export function ProductsPage({ data }: ProductsPageProps) {
   const { addProducts, isTracking, trackError, clearTrackError } =
-    useAddTrackedProducts();
+    useAddTrackedProducts({
+      trackedShopifyProductIds: data.trackedShopifyProductIds,
+    });
   const hasProducts = data.trackedCount > 0;
+
+  const trackErrorHeading =
+    trackError === ALREADY_TRACKED_MESSAGE
+      ? "Product already tracked"
+      : "Couldn't track products";
 
   return (
     <PageLayout
@@ -73,8 +84,10 @@ export function ProductsPage({ data }: ProductsPageProps) {
     >
       {trackError ? (
         <s-banner
-          tone="critical"
-          heading="Couldn't track products"
+          tone={
+            trackError === ALREADY_TRACKED_MESSAGE ? "warning" : "critical"
+          }
+          heading={trackErrorHeading}
           dismissible
           onDismiss={clearTrackError}
         >

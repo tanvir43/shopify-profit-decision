@@ -4,6 +4,7 @@ import { OnboardingChoiceCard } from "./components/OnboardingChoiceCard";
 import {
   detailedSetupHref,
   quickStartHref,
+  trackedProductsListHref,
 } from "./lib/productStatus";
 
 export type ProductOnboardingPageData = {
@@ -20,9 +21,17 @@ type ProductOnboardingPageProps = {
  */
 export function ProductOnboardingPage({ data }: ProductOnboardingPageProps) {
   const { trackedProductId } = data;
+  const backHref = trackedProductsListHref(trackedProductId);
 
   return (
-    <PageLayout title="How would you like to get started?">
+    <PageLayout
+      title="How would you like to get started?"
+      breadcrumbActions={
+        <s-link slot="breadcrumb-actions" href={backHref}>
+          Back
+        </s-link>
+      }
+    >
       <s-stack direction="block" gap="large-100">
         <s-paragraph>
           Choose the approach that best matches how you currently manage your

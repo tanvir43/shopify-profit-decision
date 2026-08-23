@@ -1,3 +1,5 @@
+import { useIsNavigatingTo } from "~/hooks";
+
 import type { ProductsPageInfo } from "../types";
 
 type ProductsPaginationProps = {
@@ -30,11 +32,36 @@ export function ProductsPagination({ pageInfo }: ProductsPaginationProps) {
     : undefined;
 
   return (
+    <PaginationButtons previousHref={previousHref} nextHref={nextHref} />
+  );
+}
+
+function PaginationButtons({
+  previousHref,
+  nextHref,
+}: {
+  previousHref: string | undefined;
+  nextHref: string | undefined;
+}) {
+  const isLoadingPrevious = useIsNavigatingTo(previousHref);
+  const isLoadingNext = useIsNavigatingTo(nextHref);
+
+  return (
     <s-stack direction="inline" gap="base" justifyContent="center">
-      <s-button href={previousHref} disabled={!previousHref} variant="secondary">
+      <s-button
+        href={previousHref}
+        disabled={!previousHref || isLoadingNext}
+        loading={isLoadingPrevious}
+        variant="secondary"
+      >
         Previous
       </s-button>
-      <s-button href={nextHref} disabled={!nextHref} variant="secondary">
+      <s-button
+        href={nextHref}
+        disabled={!nextHref || isLoadingPrevious}
+        loading={isLoadingNext}
+        variant="secondary"
+      >
         Next
       </s-button>
     </s-stack>

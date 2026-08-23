@@ -1,3 +1,5 @@
+import { useIsNavigatingTo } from "~/hooks";
+
 import {
   costProfileHref,
   formatProductStatus,
@@ -10,6 +12,8 @@ type ProductRowProps = {
 
 export function ProductRow({ product }: ProductRowProps) {
   const { label, tone } = formatProductStatus(product.status);
+  const href = costProfileHref(product.id);
+  const isOpening = useIsNavigatingTo(href);
   const imageAlt = product.featuredImageUrl
     ? `Photo of ${product.title}`
     : "";
@@ -38,8 +42,9 @@ export function ProductRow({ product }: ProductRowProps) {
           </s-stack>
         </s-stack>
         <s-button
-          href={costProfileHref(product.id)}
+          href={href}
           variant="secondary"
+          loading={isOpening}
         >
           Open Cost Profile
         </s-button>

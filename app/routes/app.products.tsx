@@ -10,6 +10,7 @@ import prisma from "~/db.server";
 import { ProductsPage } from "~/modules/products";
 import type { StopTrackingActionData } from "~/modules/products/components/TrackedProductList";
 import type { TrackProductsActionData } from "~/modules/products/hooks/useAddTrackedProducts";
+import { ALREADY_TRACKED_MESSAGE } from "~/modules/products/hooks/useAddTrackedProducts";
 import { loadTrackedProductWorkspace } from "~/modules/products/services/trackedProductWorkspace.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
@@ -26,7 +27,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return {
     trackedCount: tracked.length,
-    workspace: loadTrackedProductWorkspace(admin, tracked),
+    trackedShopifyProductIds: tracked.map((product) => product.shopifyProductId),
+    workspace: loadTrackedProductWorkspace(admin, tracked, session.shop),
   };
 };
 
@@ -104,6 +106,10 @@ export const action = async ({
       session.shop,
       productIds,
     );
+
+    if (newlyTracked === 0) {
+      return { ok: false, error: ALREADY_TRACKED_MESSAGE };
+    }
 
     return { ok: true, newlyTracked };
   } catch {

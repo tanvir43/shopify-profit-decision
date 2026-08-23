@@ -38,6 +38,25 @@ export function trackedProductHref(trackedProductId: string): string {
   return `/app/products/${encodeURIComponent(trackedProductId)}`;
 }
 
+/**
+ * Tracked Products list, optionally marking a row to highlight after back navigation.
+ */
+export function trackedProductsListHref(highlightTrackedProductId?: string): string {
+  if (!highlightTrackedProductId) {
+    return "/app/products";
+  }
+
+  const params = new URLSearchParams({
+    highlight: highlightTrackedProductId,
+  });
+  return `/app/products?${params.toString()}`;
+}
+
+/** True when a cost profile has a saved product cost (Decision Workspace ready). */
+export function hasProductCost(totalCost: string | null | undefined): boolean {
+  return totalCost != null;
+}
+
 export function quickStartHref(trackedProductId: string): string {
   return `/app/products/${encodeURIComponent(trackedProductId)}/quick-start`;
 }

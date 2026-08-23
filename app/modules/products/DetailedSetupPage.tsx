@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
+import { useIsNavigatingTo } from "~/hooks";
 import { validateDetailedSetupAmount } from "~/modules/cost-profiles/lib/validateDetailedSetupAmount";
 import {
   COST_ITEM_TYPES,
@@ -14,6 +15,7 @@ import {
   type CostBreakdownAmounts,
   type CostBreakdownFieldErrors,
 } from "./components/CostBreakdownForm";
+import { trackedProductHref } from "./lib/productStatus";
 
 export type DetailedSetupPageData = {
   trackedProductId: string;
@@ -45,6 +47,8 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
   const handledSubmission = useRef(false);
 
   const isSaving = fetcher.state !== "idle";
+  const backHref = trackedProductHref(trackedProductId);
+  const isNavigatingBack = useIsNavigatingTo(backHref);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -114,7 +118,14 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
   }, [amounts, fetcher]);
 
   return (
-    <PageLayout title={productTitle}>
+    <PageLayout
+      title={productTitle}
+      breadcrumbActions={
+        <s-link slot="breadcrumb-actions" href={backHref}>
+          Back
+        </s-link>
+      }
+    >
       <s-stack direction="block" gap="large-100">
         <CostBreakdownForm
           currency={currency}
@@ -125,14 +136,24 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
           onAmountChange={handleAmountChange}
         />
 
-        <s-button
-          variant="primary"
-          disabled={isSaving}
-          loading={isSaving}
-          onClick={handleSubmit}
-        >
-          Save Cost Breakdown
-        </s-button>
+        <s-stack direction="inline" gap="base">
+          <s-button
+            variant="primary"
+            disabled={isSaving}
+            loading={isSaving}
+            onClick={handleSubmit}
+          >
+            Save Cost Breakdown
+          </s-button>
+          <s-button
+            variant="secondary"
+            href={backHref}
+            disabled={isSaving}
+            loading={isNavigatingBack}
+          >
+            Back
+          </s-button>
+        </s-stack>
       </s-stack>
     </PageLayout>
   );

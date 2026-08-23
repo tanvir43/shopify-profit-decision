@@ -151,13 +151,15 @@ export function SellingPriceMethodFields({
             <s-text type="strong">{suggestedDisplay}</s-text>
           </s-stack>
 
-          <s-button
-            variant="secondary"
-            disabled={disabled || suggestedSellingPrice == null}
-            onClick={handleUseSuggestedPrice}
-          >
-            Use Suggested Price
-          </s-button>
+          {targetMargin.trim().length > 0 ? (
+            <s-button
+              variant="secondary"
+              disabled={disabled || suggestedSellingPrice == null}
+              onClick={handleUseSuggestedPrice}
+            >
+              Use Suggested Selling Price
+            </s-button>
+          ) : null}
         </s-stack>
       )}
     </s-stack>

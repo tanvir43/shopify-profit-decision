@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
+import { useIsNavigatingTo } from "~/hooks";
 import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
 import { validateSellingPrice } from "~/modules/cost-profiles/lib/validateSellingPrice";
 
@@ -90,6 +91,7 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
 
   const isSaving = fetcher.state !== "idle";
   const overviewHref = trackedProductHref(trackedProductId);
+  const isNavigatingAway = useIsNavigatingTo(overviewHref);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -195,23 +197,26 @@ export function SellingPricePage({ data }: SellingPricePageProps) {
           onSuggestedPriceApplied={handleSuggestedPriceApplied}
         />
 
-        <s-stack direction="inline" gap="base">
-          <s-button
-            variant="primary"
-            disabled={isSaving}
-            loading={isSaving}
-            onClick={handleSubmit}
-          >
-            Save
-          </s-button>
-          <s-button
-            variant="secondary"
-            href={overviewHref}
-            disabled={isSaving}
-          >
-            Cancel
-          </s-button>
-        </s-stack>
+        {pricingMethod === "manual" ? (
+          <s-stack direction="inline" gap="base">
+            <s-button
+              variant="primary"
+              disabled={isSaving}
+              loading={isSaving}
+              onClick={handleSubmit}
+            >
+              Save
+            </s-button>
+            <s-button
+              variant="secondary"
+              href={overviewHref}
+              disabled={isSaving}
+              loading={isNavigatingAway}
+            >
+              Cancel
+            </s-button>
+          </s-stack>
+        ) : null}
       </s-stack>
     </PageLayout>
   );

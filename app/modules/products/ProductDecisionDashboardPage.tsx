@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type MutableRefObject } from "react";
 
 import { PageLayout } from "~/components/PageLayout";
+import { useIsNavigatingTo } from "~/hooks";
 import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency";
 import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileMode";
 import type { CostItemType } from "~/modules/cost-profiles/types/CostItemType";
@@ -16,6 +17,7 @@ import { StrategyControls } from "./components/StrategyControls";
 import {
   formatProductStatus,
   quickStartHref,
+  trackedProductsListHref,
   type ProductStatusTone,
 } from "./lib/productStatus";
 import {
@@ -121,18 +123,23 @@ export function ProductDecisionDashboardPage({
         ? `Photo of ${productTitle}`
         : "";
 
-  const improveAccuracyLabel = isQuickStart
-    ? "Break Down My Costs"
-    : "Edit Cost Breakdown";
-
   const hasSellingPrice = sellingPrice != null && sellingPrice !== "";
   const sellingPriceDisplay = hasSellingPrice
     ? formatCurrencyAmount(sellingPrice, currency)
     : "—";
   const sellingPriceReady = isSellingPriceReady(sellingPrice);
 
+  const backHref = trackedProductsListHref(trackedProductId);
+
   return (
-    <PageLayout title={productTitle}>
+    <PageLayout
+      title={productTitle}
+      breadcrumbActions={
+        <s-link slot="breadcrumb-actions" href={backHref}>
+          Back
+        </s-link>
+      }
+    >
       <s-stack direction="block" gap="large-100">
         <ProductSummarySection
           productTitle={productTitle}
@@ -148,6 +155,8 @@ export function ProductDecisionDashboardPage({
           sellingPriceDisplay={sellingPriceDisplay}
           showSellingPriceRequiredWarning={!sellingPriceReady}
           startSellingPriceEditRef={startSellingPriceEditRef}
+          isQuickStart={isQuickStart}
+          editTotalCostHref={quickStartHref(trackedProductId)}
         />
 
         <StickyWorkspaceHeader
@@ -178,12 +187,6 @@ export function ProductDecisionDashboardPage({
           fieldErrors={strategyValidation.errors}
           fieldWarnings={strategyValidation.warnings}
         />
-
-        <ProductCostingSection
-          improveAccuracyLabel={improveAccuracyLabel}
-          isQuickStart={isQuickStart}
-          quickStartHref={quickStartHref(trackedProductId)}
-        />
       </s-stack>
 
       <CostBreakdownModal
@@ -209,6 +212,8 @@ function ProductSummarySection({
   sellingPriceDisplay,
   showSellingPriceRequiredWarning,
   startSellingPriceEditRef,
+  isQuickStart,
+  editTotalCostHref,
 }: {
   productTitle: string;
   statusLabel: string;
@@ -223,7 +228,13 @@ function ProductSummarySection({
   sellingPriceDisplay: string;
   showSellingPriceRequiredWarning: boolean;
   startSellingPriceEditRef: MutableRefObject<(() => void) | null>;
+  isQuickStart: boolean;
+  editTotalCostHref: string;
 }) {
+  const isNavigatingToEditTotal = useIsNavigatingTo(
+    isQuickStart ? editTotalCostHref : undefined,
+  );
+
   return (
     <s-section heading="Product Summary">
       <s-stack direction="block" gap="base">
@@ -240,9 +251,28 @@ function ProductSummarySection({
         </s-stack>
 
         <s-stack direction="inline" gap="large-100" alignItems="end">
-          <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">Product Cost</s-text>
-            <s-text type="strong">{costDisplay}</s-text>
+          <s-stack direction="inline" gap="large-100" alignItems="end">
+            <s-stack direction="block" gap="small-100">
+              <s-text color="subdued">Product Cost</s-text>
+              <s-text type="strong">{costDisplay}</s-text>
+            </s-stack>
+            {isQuickStart ? (
+              <s-button
+                href={editTotalCostHref}
+                variant="secondary"
+                loading={isNavigatingToEditTotal}
+              >
+                Edit Total Cost
+              </s-button>
+            ) : (
+              <s-button
+                variant="secondary"
+                commandFor={COST_BREAKDOWN_MODAL_ID}
+                command="--show"
+              >
+                Edit Cost Breakdown
+              </s-button>
+            )}
           </s-stack>
           <InlineSellingPriceEditor
             trackedProductId={trackedProductId}
@@ -303,43 +333,3 @@ function StrategiesSection({
   );
 }
 
-function ProductCostingSection({
-  improveAccuracyLabel,
-  isQuickStart,
-  quickStartHref: editTotalHref,
-}: {
-  improveAccuracyLabel: string;
-  isQuickStart: boolean;
-  quickStartHref: string;
-}) {
-  return (
-    <s-section heading="Product Costing">
-      <s-stack direction="block" gap="base">
-        <s-box padding="base" borderWidth="base" borderRadius="base">
-          <s-stack direction="block" gap="base">
-            <s-stack direction="block" gap="small-100">
-              <s-heading>Want more accurate recommendations?</s-heading>
-              <s-paragraph color="subdued">
-                Break your total cost into individual cost components for more
-                precise pricing insights.
-              </s-paragraph>
-            </s-stack>
-            <s-button
-              variant="primary"
-              commandFor={COST_BREAKDOWN_MODAL_ID}
-              command="--show"
-            >
-              {improveAccuracyLabel}
-            </s-button>
-          </s-stack>
-        </s-box>
-
-        {isQuickStart ? (
-          <s-button href={editTotalHref} variant="secondary">
-            Edit Total Cost
-          </s-button>
-        ) : null}
-      </s-stack>
-    </s-section>
-  );
-}

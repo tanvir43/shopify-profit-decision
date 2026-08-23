@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
+import { useIsNavigatingTo } from "~/hooks";
 import { validateQuickStartTotalCost } from "~/modules/cost-profiles/lib/validateQuickStartTotalCost";
+
+import { trackedProductHref } from "./lib/productStatus";
 
 export type QuickStartPageData = {
   trackedProductId: string;
@@ -33,6 +36,8 @@ export function QuickStartPage({ data }: QuickStartPageProps) {
   const handledSubmission = useRef(false);
 
   const isSaving = fetcher.state !== "idle";
+  const backHref = trackedProductHref(trackedProductId);
+  const isNavigatingBack = useIsNavigatingTo(backHref);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -87,7 +92,14 @@ export function QuickStartPage({ data }: QuickStartPageProps) {
   );
 
   return (
-    <PageLayout title={productTitle}>
+    <PageLayout
+      title={productTitle}
+      breadcrumbActions={
+        <s-link slot="breadcrumb-actions" href={backHref}>
+          Back
+        </s-link>
+      }
+    >
       <s-stack direction="block" gap="large-100">
         {saveError ? (
           <s-banner tone="critical" heading="Could not save">
@@ -110,14 +122,24 @@ export function QuickStartPage({ data }: QuickStartPageProps) {
           onChange={handleChange}
         />
 
-        <s-button
-          variant="primary"
-          disabled={isSaving}
-          loading={isSaving}
-          onClick={handleSubmit}
-        >
-          Save &amp; Continue
-        </s-button>
+        <s-stack direction="inline" gap="base">
+          <s-button
+            variant="primary"
+            disabled={isSaving}
+            loading={isSaving}
+            onClick={handleSubmit}
+          >
+            Save &amp; Continue
+          </s-button>
+          <s-button
+            variant="secondary"
+            href={backHref}
+            disabled={isSaving}
+            loading={isNavigatingBack}
+          >
+            Back
+          </s-button>
+        </s-stack>
       </s-stack>
     </PageLayout>
   );

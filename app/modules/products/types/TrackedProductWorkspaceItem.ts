@@ -10,4 +10,6 @@ export type TrackedProductWorkspaceItem = {
   imageUrl: string | null;
   imageAlt: string | null;
   trackedAt: string;
+  /** True when a product cost is saved — Decision Workspace / simulation ready. */
+  hasProductCost: boolean;
 };

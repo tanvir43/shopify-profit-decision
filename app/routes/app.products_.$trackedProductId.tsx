@@ -14,6 +14,7 @@ import {
   ProductDecisionDashboardPage,
   ProductOnboardingPage,
 } from "~/modules/products";
+import { hasProductCost } from "~/modules/products/lib/productStatus";
 import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
@@ -45,7 +46,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     tracked.shopifyProductId,
   );
 
-  if (profile?.mode === "QUICK_START" || profile?.mode === "DETAILED") {
+  if (
+    (profile?.mode === "QUICK_START" || profile?.mode === "DETAILED") &&
+    hasProductCost(profile.totalCost)
+  ) {
     let productTitle = tracked.shopifyProductId;
     let productStatus = "UNKNOWN";
     let imageUrl: string | null = null;

@@ -203,6 +203,10 @@ export function InlineSellingPriceEditor({
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key === "Enter") {
+        if (pricingMethod === "margin") {
+          return;
+        }
+
         event.preventDefault();
         handleSave();
         return;
@@ -213,7 +217,7 @@ export function InlineSellingPriceEditor({
         handleCancel();
       }
     },
-    [handleCancel, handleSave],
+    [handleCancel, handleSave, pricingMethod],
   );
 
   if (!editing) {
@@ -224,7 +228,7 @@ export function InlineSellingPriceEditor({
           <s-text type="strong">{sellingPriceDisplay}</s-text>
         </s-stack>
         <s-button variant="secondary" onClick={startEdit}>
-          Edit
+          Edit Selling Price
         </s-button>
       </s-stack>
     );
@@ -252,23 +256,25 @@ export function InlineSellingPriceEditor({
           onSuggestedPriceApplied={handleSuggestedPriceApplied}
         />
 
-        <s-stack direction="inline" gap="base">
-          <s-button
-            variant="primary"
-            disabled={isSaving}
-            loading={isSaving}
-            onClick={handleSave}
-          >
-            Save
-          </s-button>
-          <s-button
-            variant="secondary"
-            disabled={isSaving}
-            onClick={handleCancel}
-          >
-            Cancel
-          </s-button>
-        </s-stack>
+        {pricingMethod === "manual" ? (
+          <s-stack direction="inline" gap="base">
+            <s-button
+              variant="primary"
+              disabled={isSaving}
+              loading={isSaving}
+              onClick={handleSave}
+            >
+              Save
+            </s-button>
+            <s-button
+              variant="secondary"
+              disabled={isSaving}
+              onClick={handleCancel}
+            >
+              Cancel
+            </s-button>
+          </s-stack>
+        ) : null}
       </s-stack>
     </div>
   );
