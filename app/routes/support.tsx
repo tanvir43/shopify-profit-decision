@@ -3,7 +3,8 @@ import type { MetaFunction } from "react-router";
 import styles from "../styles/legal-pages.module.css";
 
 const SUPPORT_EMAIL = "support@sniporder.com";
-const COMPANY_NAME = "SnipOrder";
+const COMPANY_NAME = "Purple IT";
+const COMPANY_WEBSITE = "https://www.sniporder.com";
 
 export const meta: MetaFunction = () => {
   return [
@@ -100,6 +101,13 @@ export default function SupportRoute() {
         <section>
           <h2>Company</h2>
           <p>{COMPANY_NAME}</p>
+          <p>
+            <strong>Website</strong>
+            <br />
+            <a href={COMPANY_WEBSITE} target="_blank" rel="noopener noreferrer">
+              {COMPANY_WEBSITE}
+            </a>
+          </p>
         </section>
 
         <section>

@@ -3,7 +3,8 @@ import type { MetaFunction } from "react-router";
 import styles from "../styles/legal-pages.module.css";
 
 const SUPPORT_EMAIL = "support@sniporder.com";
-const COMPANY_NAME = "SnipOrder";
+const COMPANY_NAME = "Purple IT";
+const COMPANY_WEBSITE = "https://www.sniporder.com";
 
 export const meta: MetaFunction = () => {
   return [
@@ -32,11 +33,11 @@ export default function PrivacyPolicyRoute() {
           <h2>Introduction</h2>
           <p>Welcome to ProfitPilot.</p>
           <p>
-            ProfitPilot is a Shopify application that helps merchants understand
-            product profitability before launching marketing campaigns. By
-            tracking product costs, pricing, and promotional strategies,
-            ProfitPilot provides merchants with accurate profit simulations and
-            decision support.
+            ProfitPilot is a Shopify application operated by {COMPANY_NAME} that
+            helps merchants understand product profitability before launching
+            marketing campaigns. By tracking product costs, pricing, and
+            promotional strategies, ProfitPilot provides merchants with profit
+            simulations and decision support.
           </p>
           <p>
             We respect your privacy and are committed to protecting your
@@ -49,83 +50,100 @@ export default function PrivacyPolicyRoute() {
         </section>
 
         <section>
-          <h2>Information We Collect</h2>
+          <h2>Shopify Scope and Data We Access</h2>
           <p>
-            ProfitPilot only collects the information required to provide its
-            services.
+            ProfitPilot requests the Shopify Admin API scope{" "}
+            <code>read_products</code> only.
           </p>
-          <p>This may include:</p>
-
-          <h3>Shopify Store Information</h3>
           <p>
-            When you install ProfitPilot, we receive information from Shopify
-            including:
+            With that permission, ProfitPilot may access the following Shopify
+            data as needed to provide the service:
           </p>
           <ul>
-            <li>Shop domain</li>
-            <li>Shop identifier</li>
-            <li>Access token required to communicate with Shopify</li>
-            <li>Shopify session information</li>
-            <li>Shop currency code (used to display monetary values)</li>
-          </ul>
-
-          <h3>Product Information</h3>
-          <p>
-            With your permission, ProfitPilot reads product information from
-            your Shopify store.
-          </p>
-          <p>Currently the application requests:</p>
-          <ul>
-            <li>Product title</li>
             <li>Product ID</li>
+            <li>Product title</li>
             <li>Product status</li>
-            <li>Product featured image URL and alt text (when available)</li>
+            <li>Featured image URL and alt text (when available)</li>
+            <li>Store currency (<code>shop.currencyCode</code>)</li>
           </ul>
           <p>
-            Selling prices and cost data used in simulations are entered by you
-            in ProfitPilot; they are not written back to your Shopify catalog.
+            Product titles, images, and status are retrieved as needed for
+            display and are not persistently stored as a full product catalog.
+            Product IDs for products you choose to track are stored as described
+            below.
           </p>
-          <p>ProfitPilot does not modify your products.</p>
+          <p>ProfitPilot does not modify your Shopify products.</p>
+        </section>
 
-          <h3>Merchant-Generated Data</h3>
+        <section>
+          <h2>Information We Do NOT Access or Store from Shopify</h2>
           <p>
-            ProfitPilot persistently stores merchant-entered information
-            required for cost and pricing analysis, including:
+            Through Shopify Admin APIs, ProfitPilot does not access or store:
           </p>
           <ul>
-            <li>Merchant-entered product cost (including cost breakdowns)</li>
-            <li>Merchant-entered selling price</li>
-            <li>
-              Tracked product information (references to Shopify products you
-              choose to track in the app)
-            </li>
+            <li>Customers</li>
+            <li>Orders</li>
+            <li>Draft orders</li>
+            <li>Checkouts</li>
+            <li>Inventory</li>
+            <li>Shopify discounts or price rules</li>
           </ul>
           <p>
-            Decision strategies, pricing simulations, and profit calculations
-            are computed in the application session for decision support and
-            are not permanently stored.
-          </p>
-          <p>
-            This information exists solely to provide profitability analysis.
+            Customer and order data are not part of ProfitPilot&apos;s Admin API
+            access. ProfitPilot does not collect customer names, addresses, phone
+            numbers, payment information, or credit card information as part of
+            its product functionality.
           </p>
         </section>
 
         <section>
-          <h2>Information We Do NOT Collect</h2>
-          <p>ProfitPilot does not collect or process:</p>
+          <h2>Merchant-Provided Data We Store</h2>
+          <p>
+            Merchants manually enter costing and pricing information in
+            ProfitPilot. The following merchant-provided data is stored in our
+            PostgreSQL database:
+          </p>
           <ul>
-            <li>Customer personal information</li>
-            <li>Customer names</li>
-            <li>Customer addresses</li>
-            <li>Customer phone numbers</li>
-            <li>Customer payment information</li>
-            <li>Shopify orders</li>
-            <li>Credit card information</li>
+            <li>Product cost</li>
+            <li>Packaging costs</li>
+            <li>Shipping costs</li>
+            <li>Payment / transaction fees</li>
+            <li>Other custom costs</li>
+            <li>Selling price</li>
           </ul>
           <p>
-            ProfitPilot also does not sell or share merchant data with
-            advertisers or unrelated third parties.
+            Product IDs are also stored for tracked products and associated cost
+            profiles so the app can reconnect your entered costs to the correct
+            Shopify products.
           </p>
+          <p>
+            Selling prices and cost data used in simulations are entered by you
+            in ProfitPilot; they are not written back to your Shopify catalog.
+          </p>
+        </section>
+
+        <section>
+          <h2>Strategy Simulation Inputs</h2>
+          <p>
+            Pricing and promotion strategy simulation inputs are processed
+            client-side for decision support. They are not permanently stored as
+            strategy records.
+          </p>
+        </section>
+
+        <section>
+          <h2>Authentication and Session Data</h2>
+          <p>
+            To authenticate your store and keep the app connected to Shopify,
+            ProfitPilot stores:
+          </p>
+          <ul>
+            <li>Shopify store domain</li>
+            <li>Shopify session information</li>
+            <li>Shopify access tokens</li>
+            <li>API scope information</li>
+            <li>Session metadata</li>
+          </ul>
         </section>
 
         <section>
@@ -136,77 +154,97 @@ export default function PrivacyPolicyRoute() {
             <li>Provide ProfitPilot features</li>
             <li>Save your product costing and selling price information</li>
             <li>
-              Display tracked products and generate in-session profitability
-              simulations
+              Display tracked products and generate profitability simulations
             </li>
             <li>Improve application stability</li>
             <li>Maintain application security</li>
+            <li>Comply with Shopify privacy requirements</li>
           </ul>
         </section>
 
         <section>
-          <h2>Data Storage</h2>
+          <h2>Infrastructure and Data Storage</h2>
           <p>
-            Persistently stored merchant data is kept using managed PostgreSQL
-            infrastructure. This includes Shopify shop/session authentication
-            information, tracked product references, merchant-entered product
-            costs, and merchant-entered selling prices.
+            ProfitPilot is hosted on Vercel. Persistently stored merchant and
+            session data is kept in a PostgreSQL database hosted on Neon.
           </p>
           <p>
-            Shopify authentication sessions are securely stored to maintain
-            access between Shopify and ProfitPilot.
-          </p>
-          <p>
-            Decision strategies, pricing simulations, and profit calculations
-            are ephemeral application state and are not written to persistent
-            storage.
+            This includes Shopify shop and session authentication information,
+            tracked product references (product IDs), and merchant-entered cost
+            and selling price information.
           </p>
           <p>
             Reasonable administrative and technical safeguards are used to
-            protect stored information.
+            protect stored information. No method of electronic storage is
+            completely secure; however, we take reasonable measures to reduce
+            risk.
           </p>
         </section>
 
         <section>
           <h2>Data Sharing</h2>
-          <p>ProfitPilot does not sell merchant information.</p>
+          <p>ProfitPilot does not sell personal information or merchant data.</p>
           <p>We only share information when required to:</p>
           <ul>
-            <li>Operate the application</li>
+            <li>
+              Operate the application (including infrastructure providers such as
+              Vercel and Neon)
+            </li>
             <li>Comply with applicable law</li>
             <li>Respond to lawful government requests</li>
           </ul>
-        </section>
-
-        <section>
-          <h2>Data Retention</h2>
           <p>
-            Merchant data remains available while the application is installed.
-          </p>
-          <p>
-            If the application is uninstalled, Shopify&apos;s required data
-            protection process is followed.
-          </p>
-          <p>
-            Where required, merchant data is deleted in accordance with Shopify
-            compliance requirements.
+            ProfitPilot does not sell or share merchant data with advertisers or
+            unrelated third parties for their marketing purposes.
           </p>
         </section>
 
         <section>
-          <h2>Shopify Compliance</h2>
+          <h2>Uninstall and Data Deletion</h2>
           <p>
-            ProfitPilot implements Shopify&apos;s required privacy compliance
-            webhooks, including:
+            Merchants may stop using ProfitPilot at any time by uninstalling the
+            application from Shopify.
+          </p>
+          <p>
+            When the app is uninstalled, the <code>app/uninstalled</code> webhook
+            deletes Shopify session and access-token records for the store.
+          </p>
+          <p>
+            Cost profiles, cost items, and tracked product data are removed when
+            Shopify sends the <code>shop/redact</code> compliance webhook, rather
+            than necessarily at the exact moment of uninstall. There is no
+            separate fixed retention period coded into the application beyond
+            this Shopify-driven process.
+          </p>
+        </section>
+
+        <section>
+          <h2>Shopify Privacy Compliance Webhooks</h2>
+          <p>
+            ProfitPilot registers and authenticates Shopify&apos;s required
+            privacy compliance webhooks:
           </p>
           <ul>
-            <li>shop/redact</li>
-            <li>customers/redact</li>
-            <li>customers/data_request</li>
+            <li>
+              <code>customers/data_request</code> — acknowledges the request. Because
+              ProfitPilot does not store customer records, it does not search for
+              or export customer records in response.
+            </li>
+            <li>
+              <code>customers/redact</code> — acknowledges the request. Because
+              ProfitPilot does not store customer records, there are no customer
+              records to delete.
+            </li>
+            <li>
+              <code>shop/redact</code> — deletes store-related application data
+              currently stored by ProfitPilot, including CostProfile records
+              (with CostItem cascade), TrackedProduct records, and remaining
+              Session records.
+            </li>
           </ul>
           <p>
-            These webhooks help us comply with Shopify&apos;s privacy
-            requirements.
+            Customer information that may appear in Shopify privacy webhook
+            payloads is not stored by ProfitPilot as customer records.
           </p>
         </section>
 
@@ -226,13 +264,8 @@ export default function PrivacyPolicyRoute() {
         <section>
           <h2>Security</h2>
           <p>
-            We continuously work to protect merchant information using
-            industry-standard security practices.
-          </p>
-          <p>
-            No method of electronic storage is completely secure; however, we
-            take reasonable measures to reduce risk and protect merchant
-            information.
+            We work to protect merchant information using industry-standard
+            security practices appropriate to the nature of the data we store.
           </p>
         </section>
 
@@ -257,6 +290,13 @@ export default function PrivacyPolicyRoute() {
             <strong>Email</strong>
             <br />
             <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+          </p>
+          <p>
+            <strong>Website</strong>
+            <br />
+            <a href={COMPANY_WEBSITE} target="_blank" rel="noopener noreferrer">
+              {COMPANY_WEBSITE}
+            </a>
           </p>
           <p>
             <strong>Company</strong>
