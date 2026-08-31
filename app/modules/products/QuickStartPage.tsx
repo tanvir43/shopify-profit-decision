@@ -6,10 +6,13 @@ import { useIsNavigatingTo } from "~/hooks";
 import { validateQuickStartTotalCost } from "~/modules/cost-profiles/lib/validateQuickStartTotalCost";
 
 import { trackedProductHref } from "./lib/productStatus";
+import { VariantContextBanner } from "./components/VariantContextBanner";
+import type { VariantContext } from "./lib/variantContext";
 
 export type QuickStartPageData = {
   trackedProductId: string;
   productTitle: string;
+  variant: VariantContext;
   currency: string;
   totalCost: string | null;
 };
@@ -26,7 +29,7 @@ type QuickStartPageProps = {
  * Quick Start cost entry — one input, one primary action (PP-0012).
  */
 export function QuickStartPage({ data }: QuickStartPageProps) {
-  const { trackedProductId, productTitle, currency, totalCost } = data;
+  const { trackedProductId, productTitle, variant, currency, totalCost } = data;
   const fetcher = useFetcher<QuickStartActionData>();
   const navigate = useNavigate();
 
@@ -101,6 +104,8 @@ export function QuickStartPage({ data }: QuickStartPageProps) {
       }
     >
       <s-stack direction="block" gap="large-100">
+        <VariantContextBanner productTitle={productTitle} variant={variant} />
+
         {saveError ? (
           <s-banner tone="critical" heading="Could not save">
             <p>{saveError}</p>

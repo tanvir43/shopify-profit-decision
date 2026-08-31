@@ -16,10 +16,13 @@ import {
   type CostBreakdownFieldErrors,
 } from "./components/CostBreakdownForm";
 import { trackedProductHref } from "./lib/productStatus";
+import { VariantContextBanner } from "./components/VariantContextBanner";
+import type { VariantContext } from "./lib/variantContext";
 
 export type DetailedSetupPageData = {
   trackedProductId: string;
   productTitle: string;
+  variant: VariantContext;
   currency: string;
   amounts: CostBreakdownAmounts;
 };
@@ -36,7 +39,7 @@ type DetailedSetupPageProps = {
  * Detailed Cost Builder — five fixed categories, one save action (PP-0013).
  */
 export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
-  const { trackedProductId, productTitle, currency, amounts: initialAmounts } =
+  const { trackedProductId, productTitle, variant, currency, amounts: initialAmounts } =
     data;
   const fetcher = useFetcher<DetailedSetupActionData>();
   const navigate = useNavigate();
@@ -127,6 +130,8 @@ export function DetailedSetupPage({ data }: DetailedSetupPageProps) {
       }
     >
       <s-stack direction="block" gap="large-100">
+        <VariantContextBanner productTitle={productTitle} variant={variant} />
+
         <CostBreakdownForm
           currency={currency}
           amounts={amounts}

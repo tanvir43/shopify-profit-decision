@@ -5,11 +5,15 @@ import { validateQuickStartTotalCost } from "~/modules/cost-profiles/lib/validat
 
 import { trackedProductHref } from "../lib/productStatus";
 import type { QuickStartActionData } from "../QuickStartPage";
+import { VariantContextBanner } from "./VariantContextBanner";
+import type { VariantContext } from "../lib/variantContext";
 
 export const QUICK_START_MODAL_ID = "quick-start-modal";
 
 type QuickStartModalProps = {
   trackedProductId: string;
+  productTitle: string;
+  variant: VariantContext;
   currency: string;
   initialTotalCost?: string | null;
   heading?: string;
@@ -26,6 +30,8 @@ type ModalElement = HTMLElement & {
  */
 export function QuickStartModal({
   trackedProductId,
+  productTitle,
+  variant,
   currency,
   initialTotalCost = null,
   heading = "Quick Start",
@@ -178,6 +184,8 @@ export function QuickStartModal({
       onHide={handleHide}
     >
       <s-stack direction="block" gap="base">
+        <VariantContextBanner productTitle={productTitle} variant={variant} />
+
         {saveError ? (
           <s-banner tone="critical" heading="Could not save">
             <p>{saveError}</p>

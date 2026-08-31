@@ -132,6 +132,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       trackedProductId: view.trackedProductId,
       currency: view.currency,
       totalCost: view.totalCost,
+      productTitle: view.productTitle,
+      variant: view.variant,
     };
   }
 

@@ -29,6 +29,7 @@ import {
 } from "~/modules/products";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
+import { toVariantContext } from "~/modules/products/lib/variantContext";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -78,10 +79,12 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   const enrichment = setup.products.get(tracked.shopifyProductId);
   const productTitle = enrichment?.title ?? tracked.shopifyProductId;
+  const variants = enrichment?.variants ?? [];
 
   return {
     trackedProductId: tracked.id,
     productTitle,
+    variant: toVariantContext(shopifyVariantId, variants),
     currency: profile?.currency ?? setup.currency,
     amounts,
   };

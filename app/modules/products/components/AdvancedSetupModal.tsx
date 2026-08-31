@@ -15,11 +15,15 @@ import {
   type CostBreakdownAmounts,
   type CostBreakdownFieldErrors,
 } from "./CostBreakdownForm";
+import { VariantContextBanner } from "./VariantContextBanner";
+import type { VariantContext } from "../lib/variantContext";
 
 export const ADVANCED_SETUP_MODAL_ID = "advanced-setup-modal";
 
 type AdvancedSetupModalProps = {
   trackedProductId: string;
+  productTitle: string;
+  variant: VariantContext;
   currency: string;
 };
 
@@ -44,6 +48,8 @@ function cloneAmounts(amounts: CostBreakdownAmounts): CostBreakdownAmounts {
  */
 export function AdvancedSetupModal({
   trackedProductId,
+  productTitle,
+  variant,
   currency,
 }: AdvancedSetupModalProps) {
   const fetcher = useFetcher<DetailedSetupActionData>();
@@ -208,14 +214,18 @@ export function AdvancedSetupModal({
       onShow={handleShow}
       onHide={handleHide}
     >
-      <CostBreakdownForm
-        currency={currency}
-        amounts={amounts}
-        fieldErrors={fieldErrors}
-        saveError={saveError}
-        disabled={isSaving}
-        onAmountChange={handleAmountChange}
-      />
+      <s-stack direction="block" gap="base">
+        <VariantContextBanner productTitle={productTitle} variant={variant} />
+
+        <CostBreakdownForm
+          currency={currency}
+          amounts={amounts}
+          fieldErrors={fieldErrors}
+          saveError={saveError}
+          disabled={isSaving}
+          onAmountChange={handleAmountChange}
+        />
+      </s-stack>
 
       <s-button
         slot="primary-action"

@@ -18,7 +18,6 @@ import {
 } from "./components/QuickStartModal";
 import { StickyWorkspaceHeader } from "./components/StickyWorkspaceHeader";
 import { StrategyControls } from "./components/StrategyControls";
-import { VariantContextBanner } from "./components/VariantContextBanner";
 import {
   formatProductStatus,
   trackedProductsListHref,
@@ -170,14 +169,9 @@ function ProductDecisionDashboardContent({
       }
     >
       <s-stack direction="block" gap="large-100">
-        <VariantContextBanner
-          productTitle={productTitle}
-          variant={variant}
-          currency={currency}
-        />
-
         <ProductSummarySection
           productTitle={productTitle}
+          variant={variant}
           statusLabel={statusLabel}
           statusTone={statusTone}
           imageUrl={imageUrl}
@@ -226,12 +220,16 @@ function ProductDecisionDashboardContent({
 
       <CostBreakdownModal
         trackedProductId={trackedProductId}
+        productTitle={productTitle}
+        variant={variant}
         currency={currency}
         initialAmounts={costAmounts}
       />
       {isQuickStart ? (
         <QuickStartModal
           trackedProductId={trackedProductId}
+          productTitle={productTitle}
+          variant={variant}
           currency={currency}
           initialTotalCost={totalCost}
           heading="Edit Total Cost"
@@ -259,6 +257,7 @@ function isSellingPriceReady(
 
 function ProductSummarySection({
   productTitle,
+  variant,
   statusLabel,
   statusTone,
   imageUrl,
@@ -275,6 +274,7 @@ function ProductSummarySection({
   isQuickStart,
 }: {
   productTitle: string;
+  variant: VariantContext;
   statusLabel: string;
   statusTone: ProductStatusTone;
   imageUrl: string | null;
@@ -301,6 +301,9 @@ function ProductSummarySection({
           )}
           <s-stack direction="block" gap="small-100">
             <s-heading>{productTitle}</s-heading>
+            {variant.title ? (
+              <s-text>Variant: {variant.title}</s-text>
+            ) : null}
             <s-badge tone={statusTone}>{statusLabel}</s-badge>
           </s-stack>
         </s-stack>

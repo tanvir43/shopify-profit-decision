@@ -58,7 +58,8 @@ export function toVariantContext(
 
   return {
     shopifyVariantId,
-    title: variant?.title ?? null,
+    title:
+      variants.length > 1 ? (variant?.title ?? null) : null,
     price: variant?.price ?? null,
   };
 }

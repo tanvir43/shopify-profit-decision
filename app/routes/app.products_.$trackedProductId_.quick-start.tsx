@@ -26,6 +26,7 @@ import {
 } from "~/modules/products";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
+import { toVariantContext, resolveCostProfileVariantId } from "~/modules/products/lib/variantContext";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -54,22 +55,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   try {
     // Read-only open: do not create a profile until Save.
-    const [profile, setup] = await Promise.all([
-      quickStartService.getQuickStartProfile(
-        session.shop,
-        tracked.shopifyProductId,
-        await resolveTrackedProductVariantId(admin, tracked),
-      ),
-      fetchShopSetupContext(admin, session.shop, [tracked.shopifyProductId]),
-    ]);
-
+    const setup = await fetchShopSetupContext(
+      admin,
+      session.shop,
+      [tracked.shopifyProductId],
+    );
     const enrichment = setup.products.get(tracked.shopifyProductId);
+    const variants = enrichment?.variants ?? [];
+    const shopifyVariantId = resolveCostProfileVariantId(
+      variants,
+      tracked.selectedShopifyVariantId,
+    );
+
+    const profile = await quickStartService.getQuickStartProfile(
+      session.shop,
+      tracked.shopifyProductId,
+      shopifyVariantId,
+    );
+
     const productTitle =
       enrichment?.title ?? tracked.shopifyProductId;
 
     return {
       trackedProductId: tracked.id,
       productTitle,
+      variant: toVariantContext(shopifyVariantId, variants),
       currency: profile?.currency ?? setup.currency,
       totalCost: profile?.totalCost ?? null,
     };

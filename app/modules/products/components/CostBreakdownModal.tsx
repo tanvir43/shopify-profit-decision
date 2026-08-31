@@ -14,11 +14,15 @@ import {
   type CostBreakdownAmounts,
   type CostBreakdownFieldErrors,
 } from "./CostBreakdownForm";
+import { VariantContextBanner } from "./VariantContextBanner";
+import type { VariantContext } from "../lib/variantContext";
 
 export const COST_BREAKDOWN_MODAL_ID = "cost-breakdown-modal";
 
 type CostBreakdownModalProps = {
   trackedProductId: string;
+  productTitle: string;
+  variant: VariantContext;
   currency: string;
   initialAmounts: CostBreakdownAmounts;
 };
@@ -44,6 +48,8 @@ function cloneAmounts(amounts: CostBreakdownAmounts): CostBreakdownAmounts {
  */
 export function CostBreakdownModal({
   trackedProductId,
+  productTitle,
+  variant,
   currency,
   initialAmounts,
 }: CostBreakdownModalProps) {
@@ -219,14 +225,18 @@ export function CostBreakdownModal({
       onShow={handleShow}
       onHide={handleHide}
     >
-      <CostBreakdownForm
-        currency={currency}
-        amounts={amounts}
-        fieldErrors={fieldErrors}
-        saveError={saveError}
-        disabled={isSaving}
-        onAmountChange={handleAmountChange}
-      />
+      <s-stack direction="block" gap="base">
+        <VariantContextBanner productTitle={productTitle} variant={variant} />
+
+        <CostBreakdownForm
+          currency={currency}
+          amounts={amounts}
+          fieldErrors={fieldErrors}
+          saveError={saveError}
+          disabled={isSaving}
+          onAmountChange={handleAmountChange}
+        />
+      </s-stack>
 
       <s-button
         slot="primary-action"
