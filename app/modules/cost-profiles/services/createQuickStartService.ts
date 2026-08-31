@@ -1,5 +1,6 @@
 import type { CostProfileRepository } from "../repositories/CostProfileRepository";
 import { CostProfileValidationError } from "../errors";
+import { normalizeShopifyVariantId } from "../lib/variantContext";
 import type { CostProfile, OpenQuickStartInput } from "../types";
 import { validateQuickStartTotalCost } from "../lib/validateQuickStartTotalCost";
 import type { QuickStartService } from "./QuickStartService";
@@ -31,9 +32,11 @@ export function createQuickStartService(
 ): QuickStartService {
   return {
     async openQuickStart(input: OpenQuickStartInput): Promise<CostProfile> {
+      const shopifyVariantId = normalizeShopifyVariantId(input.shopifyVariantId);
       const existing = await repository.getCostProfileByTrackedProductId(
         input.shop,
         input.productId,
+        shopifyVariantId,
       );
 
       if (existing) {
@@ -45,6 +48,7 @@ export function createQuickStartService(
       return repository.createQuickStartCostProfile({
         shop: input.shop,
         productId: input.productId,
+        shopifyVariantId,
         currency: input.currency,
       });
     },
@@ -52,21 +56,25 @@ export function createQuickStartService(
     async saveQuickStartCost(input: {
       shop: string;
       productId: string;
+      shopifyVariantId?: string;
       totalCostRaw: string;
       currency: string;
     }): Promise<CostProfile> {
+      const shopifyVariantId = normalizeShopifyVariantId(input.shopifyVariantId);
       const totalCost = parseQuickStartTotalCost(input.totalCostRaw);
       assertCurrency(input.currency);
 
       const existing = await repository.getCostProfileByTrackedProductId(
         input.shop,
         input.productId,
+        shopifyVariantId,
       );
 
       if (!existing) {
         return repository.createQuickStartCostProfile({
           shop: input.shop,
           productId: input.productId,
+          shopifyVariantId,
           currency: input.currency,
           totalCost,
         });
@@ -81,6 +89,7 @@ export function createQuickStartService(
       return repository.updateQuickStartCost(
         input.shop,
         input.productId,
+        shopifyVariantId,
         totalCost,
       );
     },
@@ -88,10 +97,12 @@ export function createQuickStartService(
     async getQuickStartProfile(
       shop: string,
       productId: string,
+      shopifyVariantId?: string,
     ): Promise<CostProfile | null> {
       const profile = await repository.getCostProfileByTrackedProductId(
         shop,
         productId,
+        normalizeShopifyVariantId(shopifyVariantId),
       );
 
       if (!profile || profile.mode !== "QUICK_START") {

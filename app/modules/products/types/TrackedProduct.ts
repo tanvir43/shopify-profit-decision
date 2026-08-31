@@ -6,6 +6,7 @@ export type TrackedProduct = {
   id: string;
   shopId: string;
   shopifyProductId: string;
+  selectedShopifyVariantId: string | null;
   trackedAt: Date;
   createdAt: Date;
   updatedAt: Date;

@@ -13,10 +13,7 @@ import type {
  */
 export interface CostProfileRepository {
   /**
-   * Load one profile by its natural key (shop + Shopify productId), including items.
-   * Why: @@unique([shop, productId]) is the primary access path for UI and decisions.
-   * Consumers: Cost Profile UI, Pricing, Safe Discount, Break-even, Bundle, AI Advisor
-   *            (via CostProfileService — not called directly by feature modules).
+   * Load the product-level profile (legacy / no-variant products).
    */
   findByProduct(
     shop: string,
@@ -24,10 +21,24 @@ export interface CostProfileRepository {
   ): Promise<CostProfile | null>;
 
   /**
+   * Load one profile by shop + product + variant scope.
+   */
+  findByProductAndVariant(
+    shop: string,
+    productId: string,
+    shopifyVariantId: string,
+  ): Promise<CostProfile | null>;
+
+  /**
+   * Load all profiles for one Shopify product (all variant scopes).
+   */
+  findAllForProduct(
+    shop: string,
+    productId: string,
+  ): Promise<CostProfile[]>;
+
+  /**
    * Batch load by natural keys. Missing products yield no entry (not an error).
-   * Why: Bundle Pricing and multi-product advisors must avoid N+1; product lists
-   *      may later badge "has cost profile" without per-row queries.
-   * Consumers: Bundle Pricing, AI Advisor (multi-product), future product overlays
    */
   findByProducts(
     shop: string,
@@ -36,19 +47,16 @@ export interface CostProfileRepository {
 
   /**
    * Upsert the full aggregate (profile meta + item set) in one persistence boundary.
-   * Why: Items have no independent lifecycle; replace/create/update semantics stay
-   *      transactional and owned by the aggregate root.
-   * Consumers: CostProfileService write paths only (ensure, updateMeta, replaceItems)
    */
   save(profile: CostProfilePersist): Promise<CostProfile>;
 
   /**
-   * Load one profile by shop + Shopify productId (tracked product reference).
-   * Repository-only — no business rules.
+   * Load one profile by shop + Shopify productId + variant scope.
    */
   getCostProfileByTrackedProductId(
     shop: string,
     productId: string,
+    shopifyVariantId?: string,
   ): Promise<CostProfile | null>;
 
   /**
@@ -64,6 +72,7 @@ export interface CostProfileRepository {
   updateQuickStartCost(
     shop: string,
     productId: string,
+    shopifyVariantId: string,
     totalCost: string,
   ): Promise<CostProfile>;
 
@@ -73,6 +82,7 @@ export interface CostProfileRepository {
   updateSellingPrice(
     shop: string,
     productId: string,
+    shopifyVariantId: string,
     sellingPrice: string,
   ): Promise<CostProfile>;
 }

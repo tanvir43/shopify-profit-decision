@@ -76,5 +76,29 @@ export function createPrismaTrackedProductRepository(
 
       return row !== null;
     },
+
+    async selectVariant(
+      shopId: string,
+      trackedProductId: string,
+      shopifyVariantId: string,
+    ): Promise<TrackedProduct | null> {
+      const existing = await prisma.trackedProduct.findFirst({
+        where: {
+          id: trackedProductId,
+          shopId,
+        },
+      });
+
+      if (!existing) {
+        return null;
+      }
+
+      const row = await prisma.trackedProduct.update({
+        where: { id: existing.id },
+        data: { selectedShopifyVariantId: shopifyVariantId },
+      });
+
+      return toTrackedProductDomain(row);
+    },
   };
 }

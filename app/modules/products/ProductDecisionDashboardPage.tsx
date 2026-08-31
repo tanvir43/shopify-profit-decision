@@ -18,11 +18,13 @@ import {
 } from "./components/QuickStartModal";
 import { StickyWorkspaceHeader } from "./components/StickyWorkspaceHeader";
 import { StrategyControls } from "./components/StrategyControls";
+import { VariantContextBanner } from "./components/VariantContextBanner";
 import {
   formatProductStatus,
   trackedProductsListHref,
   type ProductStatusTone,
 } from "./lib/productStatus";
+import type { VariantContext } from "./lib/variantContext";
 import type { ProductDetailsEnrichment } from "./services/productDetailsEnrichment.server";
 import {
   EMPTY_STRATEGY_INPUTS,
@@ -36,6 +38,8 @@ import { validateStrategyBusinessRules } from "./lib/validateStrategyBusinessRul
 export type ProductDecisionDashboardData = {
   trackedProductId: string;
   mode: CostProfileMode;
+  shopifyVariantId: string;
+  variant: VariantContext;
   productTitle: string;
   productStatus: string;
   imageUrl: string | null;
@@ -98,6 +102,8 @@ function ProductDecisionDashboardContent({
   const {
     trackedProductId,
     mode,
+    shopifyVariantId,
+    variant,
     productTitle,
     productStatus,
     imageUrl,
@@ -164,6 +170,12 @@ function ProductDecisionDashboardContent({
       }
     >
       <s-stack direction="block" gap="large-100">
+        <VariantContextBanner
+          productTitle={productTitle}
+          variant={variant}
+          currency={currency}
+        />
+
         <ProductSummarySection
           productTitle={productTitle}
           statusLabel={statusLabel}
@@ -172,6 +184,7 @@ function ProductDecisionDashboardContent({
           thumbnailAlt={thumbnailAlt}
           costDisplay={costDisplay}
           trackedProductId={trackedProductId}
+          shopifyVariantId={shopifyVariantId}
           currency={currency}
           totalCost={totalCost}
           sellingPrice={sellingPrice}
@@ -252,6 +265,7 @@ function ProductSummarySection({
   thumbnailAlt,
   costDisplay,
   trackedProductId,
+  shopifyVariantId,
   currency,
   totalCost,
   sellingPrice,
@@ -267,6 +281,7 @@ function ProductSummarySection({
   thumbnailAlt: string;
   costDisplay: string;
   trackedProductId: string;
+  shopifyVariantId: string;
   currency: string;
   totalCost: string | null;
   sellingPrice: string | null;
@@ -316,6 +331,7 @@ function ProductSummarySection({
           </s-stack>
           <InlineSellingPriceEditor
             trackedProductId={trackedProductId}
+            shopifyVariantId={shopifyVariantId}
             currency={currency}
             totalCost={totalCost}
             sellingPrice={sellingPrice}

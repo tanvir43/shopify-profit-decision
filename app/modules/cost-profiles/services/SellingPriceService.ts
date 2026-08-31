@@ -10,6 +10,7 @@ export interface SellingPriceService {
   getSellingPriceProfile(
     shop: string,
     productId: string,
+    shopifyVariantId?: string,
   ): Promise<CostProfile | null>;
 
   /**
@@ -20,5 +21,6 @@ export interface SellingPriceService {
     shop: string,
     productId: string,
     sellingPriceRaw: string,
+    shopifyVariantId?: string,
   ): Promise<CostProfile>;
 }

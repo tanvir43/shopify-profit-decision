@@ -9,6 +9,7 @@ import {
 } from "~/modules/cost-profiles/types/CostItemType";
 import type { DetailedSetupActionData } from "~/modules/products/DetailedSetupPage";
 import type { QuickStartActionData } from "~/modules/products/QuickStartPage";
+import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
 
@@ -18,6 +19,13 @@ export type ProductDetailsActionData =
   | QuickStartActionData
   | DetailedSetupActionData;
 
+async function resolveVariantIdForTrackedProduct(
+  admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"],
+  tracked: NonNullable<Awaited<ReturnType<typeof trackedProductService.getTrackedProduct>>>,
+): Promise<string> {
+  return resolveTrackedProductVariantId(admin, tracked);
+}
+
 /**
  * Cost-entry saves for the product details route — keeps fetcher POSTs on-page
  * so save + revalidation avoid a second route's auth/loader stack.
@@ -26,7 +34,7 @@ export async function handleProductDetailsAction({
   request,
   params,
 }: ActionFunctionArgs): Promise<ProductDetailsActionData> {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   const trackedProductId = params.trackedProductId?.trim();
   if (!trackedProductId) {
@@ -42,11 +50,18 @@ export async function handleProductDetailsAction({
     return { ok: false, error: "We couldn't save your cost. Try again." };
   }
 
+  const shopifyVariantId = await resolveVariantIdForTrackedProduct(admin, tracked);
+
   const formData = await request.formData();
   const intent = formData.get("intent");
 
   if (intent === "quick-start-save") {
-    return handleQuickStartSave(formData, session.shop, tracked.shopifyProductId);
+    return handleQuickStartSave(
+      formData,
+      session.shop,
+      tracked.shopifyProductId,
+      shopifyVariantId,
+    );
   }
 
   if (intent === "detailed-setup-save") {
@@ -54,6 +69,7 @@ export async function handleProductDetailsAction({
       formData,
       session.shop,
       tracked.shopifyProductId,
+      shopifyVariantId,
     );
   }
 
@@ -64,6 +80,7 @@ async function handleQuickStartSave(
   formData: FormData,
   shop: string,
   shopifyProductId: string,
+  shopifyVariantId: string,
 ): Promise<QuickStartActionData> {
   const totalCostRaw = formData.get("totalCost");
   const currencyRaw = formData.get("currency");
@@ -84,6 +101,7 @@ async function handleQuickStartSave(
     await quickStartService.saveQuickStartCost({
       shop,
       productId: shopifyProductId,
+      shopifyVariantId,
       totalCostRaw,
       currency,
     });
@@ -101,6 +119,7 @@ async function handleDetailedSetupSave(
   formData: FormData,
   shop: string,
   shopifyProductId: string,
+  shopifyVariantId: string,
 ): Promise<DetailedSetupActionData> {
   const amounts = emptyAmounts();
 
@@ -122,6 +141,7 @@ async function handleDetailedSetupSave(
     await detailedSetupService.saveDetailedBreakdown({
       shop,
       productId: shopifyProductId,
+      shopifyVariantId,
       currency,
       amounts,
     });

@@ -54,5 +54,18 @@ export function createTrackedProductService(
     async isTracked(shopId: string, productId: string): Promise<boolean> {
       return repository.isTracked(shopId, productId);
     },
+
+    async selectVariant(
+      shopId: string,
+      trackedProductId: string,
+      shopifyVariantId: string,
+    ): Promise<TrackedProduct | null> {
+      const variantId = shopifyVariantId.trim();
+      if (variantId.length === 0) {
+        return null;
+      }
+
+      return repository.selectVariant(shopId, trackedProductId.trim(), variantId);
+    },
   };
 }

@@ -1,6 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
 import type { CostProfileMapper } from "../mappers/costProfileMapper";
 import {
+  normalizeShopifyVariantId,
+  PRODUCT_LEVEL_VARIANT_ID,
+} from "../lib/variantContext";
+import {
   prismaCostProfileMapper,
   type CostItemWriteModel,
   type CostProfileWriteModel,
@@ -18,6 +22,20 @@ const profileWithItems = {
   },
 };
 
+function profileUniqueWhere(
+  shop: string,
+  productId: string,
+  shopifyVariantId: string,
+) {
+  return {
+    shop_productId_shopifyVariantId: {
+      shop,
+      productId,
+      shopifyVariantId: normalizeShopifyVariantId(shopifyVariantId),
+    },
+  };
+}
+
 function toItemCreateInput(item: CostItemWriteModel) {
   return {
     ...(item.id !== undefined ? { id: item.id } : {}),
@@ -33,9 +51,6 @@ function toItemCreateInput(item: CostItemWriteModel) {
 
 /**
  * Prisma implementation of CostProfileRepository.
- *
- * Owns query verbs only. Domain ↔ storage field conversion is delegated to
- * CostProfileMapper so a future persistence swap replaces this file + mapper.
  */
 export function createPrismaCostProfileRepository(
   prisma: PrismaClient,
@@ -46,12 +61,36 @@ export function createPrismaCostProfileRepository(
       shop: string,
       productId: string,
     ): Promise<CostProfile | null> {
+      return this.findByProductAndVariant(
+        shop,
+        productId,
+        PRODUCT_LEVEL_VARIANT_ID,
+      );
+    },
+
+    async findByProductAndVariant(
+      shop: string,
+      productId: string,
+      shopifyVariantId: string,
+    ): Promise<CostProfile | null> {
       const row = await prisma.costProfile.findUnique({
-        where: { shop_productId: { shop, productId } },
+        where: profileUniqueWhere(shop, productId, shopifyVariantId),
         include: profileWithItems,
       });
 
       return row ? mapper.toDomain(row) : null;
+    },
+
+    async findAllForProduct(
+      shop: string,
+      productId: string,
+    ): Promise<CostProfile[]> {
+      const rows = await prisma.costProfile.findMany({
+        where: { shop, productId },
+        include: profileWithItems,
+      });
+
+      return rows.map((row) => mapper.toDomain(row));
     },
 
     async findByProducts(
@@ -77,18 +116,12 @@ export function createPrismaCostProfileRepository(
       const data = mapper.toPersist(profile) as CostProfileWriteModel;
       const itemCreates = data.items.map(toItemCreateInput);
 
-      // Full aggregate replace: nested deleteMany + create runs in one Prisma
-      // nested-write transaction — no explicit $transaction required.
       const row = await prisma.costProfile.upsert({
-        where: {
-          shop_productId: {
-            shop: data.shop,
-            productId: data.productId,
-          },
-        },
+        where: profileUniqueWhere(data.shop, data.productId, data.shopifyVariantId),
         create: {
           shop: data.shop,
           productId: data.productId,
+          shopifyVariantId: data.shopifyVariantId,
           currency: data.currency,
           mode: data.mode,
           totalCost: data.totalCost,
@@ -116,22 +149,20 @@ export function createPrismaCostProfileRepository(
     async getCostProfileByTrackedProductId(
       shop: string,
       productId: string,
+      shopifyVariantId: string = PRODUCT_LEVEL_VARIANT_ID,
     ): Promise<CostProfile | null> {
-      const row = await prisma.costProfile.findUnique({
-        where: { shop_productId: { shop, productId } },
-        include: profileWithItems,
-      });
-
-      return row ? mapper.toDomain(row) : null;
+      return this.findByProductAndVariant(shop, productId, shopifyVariantId);
     },
 
     async createQuickStartCostProfile(
       input: CreateQuickStartCostProfileInput,
     ): Promise<CostProfile> {
+      const shopifyVariantId = normalizeShopifyVariantId(input.shopifyVariantId);
       const row = await prisma.costProfile.create({
         data: {
           shop: input.shop,
           productId: input.productId,
+          shopifyVariantId,
           currency: input.currency,
           mode: "QUICK_START",
           totalCost: input.totalCost ?? null,
@@ -146,10 +177,11 @@ export function createPrismaCostProfileRepository(
     async updateQuickStartCost(
       shop: string,
       productId: string,
+      shopifyVariantId: string,
       totalCost: string,
     ): Promise<CostProfile> {
       const row = await prisma.costProfile.update({
-        where: { shop_productId: { shop, productId } },
+        where: profileUniqueWhere(shop, productId, shopifyVariantId),
         data: { totalCost },
         include: profileWithItems,
       });
@@ -160,10 +192,11 @@ export function createPrismaCostProfileRepository(
     async updateSellingPrice(
       shop: string,
       productId: string,
+      shopifyVariantId: string,
       sellingPrice: string,
     ): Promise<CostProfile> {
       const row = await prisma.costProfile.update({
-        where: { shop_productId: { shop, productId } },
+        where: profileUniqueWhere(shop, productId, shopifyVariantId),
         data: { sellingPrice },
         include: profileWithItems,
       });

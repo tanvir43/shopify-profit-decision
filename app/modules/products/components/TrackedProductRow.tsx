@@ -34,6 +34,7 @@ export function TrackedProductRow({
   imageAlt,
   trackedAt,
   hasProductCost,
+  variants,
   onStopTracking,
   stopTrackingDisabled = false,
   highlighted = false,
@@ -103,6 +104,7 @@ export function TrackedProductRow({
                     imageAlt,
                     trackedAt,
                     hasProductCost,
+                    variants,
                   })
                 }
               >

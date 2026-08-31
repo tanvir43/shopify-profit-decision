@@ -6,6 +6,7 @@ import type { CostProfile } from "../types/CostProfile";
 import type { CostProfileMode } from "../types/CostProfileMode";
 import type { CostUnit } from "../types/CostUnit";
 import type { CostProfileMapper } from "./costProfileMapper";
+import { normalizeShopifyVariantId } from "../lib/variantContext";
 
 type PrismaCostProfileWithItems = PrismaCostProfile & {
   items: PrismaCostItem[];
@@ -18,6 +19,7 @@ type PrismaCostProfileWithItems = PrismaCostProfile & {
 export type CostProfileWriteModel = {
   shop: string;
   productId: string;
+  shopifyVariantId: string;
   currency: string;
   mode: CostProfileMode;
   totalCost: string | null;
@@ -75,6 +77,7 @@ export const prismaCostProfileMapper: CostProfileMapper = {
       id: profile.id,
       shop: profile.shop,
       productId: profile.productId,
+      shopifyVariantId: profile.shopifyVariantId,
       currency: profile.currency,
       mode: profile.mode,
       totalCost: nullableDecimalToString(profile.totalCost),
@@ -107,6 +110,7 @@ export const prismaCostProfileMapper: CostProfileMapper = {
     return {
       shop: profile.shop,
       productId: profile.productId,
+      shopifyVariantId: normalizeShopifyVariantId(profile.shopifyVariantId),
       currency: profile.currency,
       mode: profile.mode ?? "DETAILED",
       totalCost: profile.totalCost ?? null,

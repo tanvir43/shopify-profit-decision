@@ -16,16 +16,18 @@ export interface QuickStartService {
   saveQuickStartCost(input: {
     shop: string;
     productId: string;
+    shopifyVariantId?: string;
     totalCostRaw: string;
     /** Required when creating a new profile. */
     currency: string;
   }): Promise<CostProfile>;
 
   /**
-   * Load a Quick Start profile if one exists for this product.
+   * Load a Quick Start profile if one exists for this product variant scope.
    */
   getQuickStartProfile(
     shop: string,
     productId: string,
+    shopifyVariantId?: string,
   ): Promise<CostProfile | null>;
 }

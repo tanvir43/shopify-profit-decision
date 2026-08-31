@@ -36,4 +36,13 @@ export interface TrackedProductRepository {
    * Whether this Shopify product is already tracked for the shop.
    */
   isTracked(shopId: string, productId: string): Promise<boolean>;
+
+  /**
+   * Persist the merchant's selected Shopify variant for costing context.
+   */
+  selectVariant(
+    shopId: string,
+    trackedProductId: string,
+    shopifyVariantId: string,
+  ): Promise<TrackedProduct | null>;
 }

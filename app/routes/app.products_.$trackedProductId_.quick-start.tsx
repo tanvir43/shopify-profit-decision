@@ -25,6 +25,7 @@ import {
   type QuickStartActionData,
 } from "~/modules/products";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
+import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -57,6 +58,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       quickStartService.getQuickStartProfile(
         session.shop,
         tracked.shopifyProductId,
+        await resolveTrackedProductVariantId(admin, tracked),
       ),
       fetchShopSetupContext(admin, session.shop, [tracked.shopifyProductId]),
     ]);
@@ -116,9 +118,12 @@ export const action = async ({
       getCachedShopCurrency(session.shop) ||
       (await resolveShopCurrency(admin, session.shop));
 
+    const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
+
     await quickStartService.saveQuickStartCost({
       shop: session.shop,
       productId: tracked.shopifyProductId,
+      shopifyVariantId,
       totalCostRaw,
       currency,
     });

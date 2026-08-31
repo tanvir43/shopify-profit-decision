@@ -13,6 +13,7 @@ export function toTrackedProductDomain(
     id: row.id,
     shopId: row.shopId,
     shopifyProductId: row.shopifyProductId,
+    selectedShopifyVariantId: row.selectedShopifyVariantId,
     trackedAt: row.trackedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

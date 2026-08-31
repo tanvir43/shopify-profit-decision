@@ -16,8 +16,11 @@
       "routes/webhooks.app.uninstalled": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/webhooks.shop.redact": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/auth.login": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/privacy": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/support": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/_index": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/auth.$": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/terms": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.products_.$trackedProductId_.detailed-setup": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.products_.$trackedProductId_.selling-price": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.products_.$trackedProductId_.quick-start": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
@@ -90,6 +93,24 @@
           "runtime": "nodejs"
         }
       },
+      "routes/privacy": {
+        "id": "routes/privacy",
+        "parentId": "root",
+        "file": "app/routes/privacy.tsx",
+        "path": "privacy",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/support": {
+        "id": "routes/support",
+        "parentId": "root",
+        "file": "app/routes/support.tsx",
+        "path": "support",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
       "routes/_index": {
         "id": "routes/_index",
         "parentId": "root",
@@ -104,6 +125,15 @@
         "parentId": "root",
         "file": "app/routes/auth.$.tsx",
         "path": "auth/*",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/terms": {
+        "id": "routes/terms",
+        "parentId": "root",
+        "file": "app/routes/terms.tsx",
+        "path": "terms",
         "config": {
           "runtime": "nodejs"
         }
@@ -262,6 +292,18 @@
         "file": "routes/auth.login/route.tsx",
         "path": "auth/login"
       },
+      "routes/privacy": {
+        "id": "routes/privacy",
+        "parentId": "root",
+        "file": "routes/privacy.tsx",
+        "path": "privacy"
+      },
+      "routes/support": {
+        "id": "routes/support",
+        "parentId": "root",
+        "file": "routes/support.tsx",
+        "path": "support"
+      },
       "routes/_index": {
         "id": "routes/_index",
         "parentId": "root",
@@ -273,6 +315,12 @@
         "parentId": "root",
         "file": "routes/auth.$.tsx",
         "path": "auth/*"
+      },
+      "routes/terms": {
+        "id": "routes/terms",
+        "parentId": "root",
+        "file": "routes/terms.tsx",
+        "path": "terms"
       },
       "routes/app": {
         "id": "routes/app",
@@ -387,6 +435,16 @@
             "path": "auth/login"
           },
           {
+            "id": "routes/privacy",
+            "file": "routes/privacy.tsx",
+            "path": "privacy"
+          },
+          {
+            "id": "routes/support",
+            "file": "routes/support.tsx",
+            "path": "support"
+          },
+          {
             "id": "routes/_index",
             "file": "routes/_index/route.tsx",
             "index": true
@@ -395,6 +453,11 @@
             "id": "routes/auth.$",
             "file": "routes/auth.$.tsx",
             "path": "auth/*"
+          },
+          {
+            "id": "routes/terms",
+            "file": "routes/terms.tsx",
+            "path": "terms"
           },
           {
             "id": "routes/app",

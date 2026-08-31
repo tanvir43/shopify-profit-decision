@@ -38,4 +38,13 @@ export interface TrackedProductService {
    * Whether a Shopify product is already in the workspace.
    */
   isTracked(shopId: string, productId: string): Promise<boolean>;
+
+  /**
+   * Persist the merchant's selected Shopify variant for costing context.
+   */
+  selectVariant(
+    shopId: string,
+    trackedProductId: string,
+    shopifyVariantId: string,
+  ): Promise<TrackedProduct | null>;
 }

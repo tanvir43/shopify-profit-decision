@@ -19,6 +19,7 @@ import type { SellingPriceActionData } from "../SellingPricePage";
 
 type InlineSellingPriceEditorProps = {
   trackedProductId: string;
+  shopifyVariantId: string;
   currency: string;
   totalCost: string | null;
   sellingPrice: string | null;
@@ -56,6 +57,7 @@ function readEventValue(event: Event): string {
  */
 export function InlineSellingPriceEditor({
   trackedProductId,
+  shopifyVariantId,
   currency,
   totalCost,
   sellingPrice,
@@ -170,13 +172,13 @@ export function InlineSellingPriceEditor({
     setFieldError(null);
 
     fetcher.submit(
-      { sellingPrice: result.value },
+      { sellingPrice: result.value, shopifyVariantId },
       {
         method: "post",
         action: sellingPriceHref(trackedProductId),
       },
     );
-  }, [fetcher, isSaving, trackedProductId]);
+  }, [fetcher, isSaving, shopifyVariantId, trackedProductId]);
 
   const handleInput = useCallback(
     (event: Event) => {

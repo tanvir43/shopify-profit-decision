@@ -22,6 +22,7 @@ import {
 } from "~/modules/products";
 import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
+import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -48,9 +49,12 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Tracked product not found.", { status: 404 });
   }
 
+  const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
+
   const profile = await sellingPriceService.getSellingPriceProfile(
     session.shop,
     tracked.shopifyProductId,
+    shopifyVariantId,
   );
 
   if (!profile) {
@@ -76,7 +80,7 @@ export const action = async ({
   request,
   params,
 }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   const trackedProductId = params.trackedProductId?.trim();
   if (!trackedProductId) {
@@ -94,16 +98,18 @@ export const action = async ({
 
   const formData = await request.formData();
   const sellingPriceRaw = formData.get("sellingPrice");
-
   if (typeof sellingPriceRaw !== "string") {
     return { ok: false, error: "Enter a selling price." } satisfies SellingPriceActionData;
   }
+
+  const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
 
   try {
     await sellingPriceService.saveSellingPrice(
       session.shop,
       tracked.shopifyProductId,
       sellingPriceRaw,
+      shopifyVariantId,
     );
   } catch (error) {
     if (error instanceof CostProfileValidationError) {

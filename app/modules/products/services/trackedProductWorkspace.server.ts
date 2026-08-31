@@ -41,6 +41,7 @@ function toWorkspaceItem(
       imageAlt: shopify.imageAlt,
       trackedAt,
       hasProductCost: productHasCost,
+      variants: shopify.variants,
     };
   }
 
@@ -54,6 +55,7 @@ function toWorkspaceItem(
       imageAlt: null,
       trackedAt,
       hasProductCost: productHasCost,
+      variants: [],
     };
   }
 
@@ -66,6 +68,7 @@ function toWorkspaceItem(
     imageAlt: null,
     trackedAt,
     hasProductCost: productHasCost,
+    variants: [],
   };
 }
 
@@ -86,7 +89,9 @@ async function loadProductCostFlags(
     );
 
     for (const profile of profiles) {
-      flags.set(profile.productId, hasProductCost(profile.totalCost));
+      if (hasProductCost(profile.totalCost)) {
+        flags.set(profile.productId, true);
+      }
     }
   } catch {
     // Cost flags stay false — list still renders with "Add Product Cost First".

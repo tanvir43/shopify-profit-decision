@@ -2,6 +2,7 @@ import type { CostProfileRepository } from "../repositories/CostProfileRepositor
 import {
   CostProfileValidationError,
 } from "../errors";
+import { normalizeShopifyVariantId } from "../lib/variantContext";
 import { validateDetailedSetupAmount } from "../lib/validateDetailedSetupAmount";
 import type { CostItemInput, CostProfile } from "../types";
 import {
@@ -98,18 +99,25 @@ export function createDetailedSetupService(
     async getDetailedSetupProfile(
       shop: string,
       productId: string,
+      shopifyVariantId?: string,
     ): Promise<CostProfile | null> {
-      return repository.getCostProfileByTrackedProductId(shop, productId);
+      return repository.getCostProfileByTrackedProductId(
+        shop,
+        productId,
+        normalizeShopifyVariantId(shopifyVariantId),
+      );
     },
 
     async saveDetailedBreakdown(
       input: SaveDetailedBreakdownInput,
     ): Promise<CostProfile> {
       assertCurrency(input.currency);
+      const shopifyVariantId = normalizeShopifyVariantId(input.shopifyVariantId);
 
       const existing = await repository.getCostProfileByTrackedProductId(
         input.shop,
         input.productId,
+        shopifyVariantId,
       );
 
       const items = buildItemsFromAmounts(input.amounts, existing);
@@ -120,6 +128,7 @@ export function createDetailedSetupService(
           id: existing.id,
           shop: existing.shop,
           productId: existing.productId,
+          shopifyVariantId: existing.shopifyVariantId,
           currency: existing.currency,
           mode: "DETAILED",
           totalCost,
@@ -132,6 +141,7 @@ export function createDetailedSetupService(
       return repository.save({
         shop: input.shop,
         productId: input.productId,
+        shopifyVariantId,
         currency: input.currency,
         mode: "DETAILED",
         totalCost,

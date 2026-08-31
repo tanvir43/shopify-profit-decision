@@ -9,6 +9,7 @@ export type CostProfile = {
   id: string;
   shop: string;
   productId: string;
+  shopifyVariantId: string;
   currency: string;
   mode: CostProfileMode;
   totalCost: string | null;

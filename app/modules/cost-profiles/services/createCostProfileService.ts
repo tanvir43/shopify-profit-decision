@@ -3,6 +3,7 @@ import {
   CostProfileNotFoundError,
   CostProfileValidationError,
 } from "../errors";
+import { normalizeShopifyVariantId } from "../lib/variantContext";
 import type {
   CostItem,
   CostItemInput,
@@ -187,6 +188,10 @@ export function createCostProfileService(
       return repository.findByProduct(shop, productId);
     },
 
+    async findAllForProduct(shop, productId) {
+      return repository.findAllForProduct(shop, productId);
+    },
+
     async getDecisionProfile(shop, productId) {
       const profile = await repository.findByProduct(shop, productId);
       return profile ? toDecisionProfile(profile) : null;
@@ -198,9 +203,11 @@ export function createCostProfileService(
     },
 
     async ensureForProduct(input: EnsureCostProfileInput) {
-      const existing = await repository.findByProduct(
+      const shopifyVariantId = normalizeShopifyVariantId(input.shopifyVariantId);
+      const existing = await repository.findByProductAndVariant(
         input.shop,
         input.productId,
+        shopifyVariantId,
       );
       if (existing) {
         return existing;
@@ -211,6 +218,7 @@ export function createCostProfileService(
       const persist: CostProfilePersist = {
         shop: input.shop,
         productId: input.productId,
+        shopifyVariantId,
         currency: input.currency,
         mode: "DETAILED",
         totalCost: null,
@@ -242,6 +250,7 @@ export function createCostProfileService(
         id: existing.id,
         shop: existing.shop,
         productId: existing.productId,
+        shopifyVariantId: existing.shopifyVariantId,
         currency,
         mode: existing.mode,
         totalCost: existing.totalCost,

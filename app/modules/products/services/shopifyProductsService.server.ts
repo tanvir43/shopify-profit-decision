@@ -20,11 +20,24 @@ type ShopifyProductNode = {
   featuredImage?: { url: string; altText?: string | null } | null;
 };
 
+export type ShopifyProductVariantEnrichment = {
+  id: string;
+  title: string;
+  price: string;
+};
+
 export type ShopifyProductEnrichment = {
   title: string;
   status: string;
   imageUrl: string | null;
   imageAlt: string | null;
+  variants: ShopifyProductVariantEnrichment[];
+};
+
+type ShopifyVariantNode = {
+  id: string;
+  title: string;
+  price: string;
 };
 
 type ShopifyProductByIdNode = {
@@ -32,6 +45,9 @@ type ShopifyProductByIdNode = {
   title: string;
   status: string;
   featuredImage?: { url: string; altText?: string | null } | null;
+  variants?: {
+    nodes?: Array<ShopifyVariantNode | null> | null;
+  } | null;
 } | null;
 
 type ShopifyProductsResponse = {
@@ -122,7 +138,33 @@ type ShopifyNodesResponse = {
   errors?: Array<{ message: string }>;
 };
 
-function toProductEnrichment(
+function toVariantEnrichment(
+  node: ShopifyVariantNode,
+): ShopifyProductVariantEnrichment {
+  return {
+    id: node.id,
+    title: node.title,
+    price: node.price,
+  };
+}
+
+function toProductVariants(
+  node: NonNullable<ShopifyProductByIdNode>,
+): ShopifyProductVariantEnrichment[] {
+  const variantNodes = node.variants?.nodes ?? [];
+  const variants: ShopifyProductVariantEnrichment[] = [];
+
+  for (const variant of variantNodes) {
+    if (variant?.id && variant.title != null && variant.price != null) {
+      variants.push(toVariantEnrichment(variant));
+    }
+  }
+
+  return variants;
+}
+
+/** Maps a Shopify Product node into runtime enrichment (not persisted). */
+export function toProductEnrichment(
   node: NonNullable<ShopifyProductByIdNode>,
 ): ShopifyProductEnrichment {
   return {
@@ -130,6 +172,7 @@ function toProductEnrichment(
     status: node.status,
     imageUrl: node.featuredImage?.url ?? null,
     imageAlt: node.featuredImage?.altText ?? null,
+    variants: toProductVariants(node),
   };
 }
 
@@ -156,6 +199,13 @@ export async function fetchProductsByIds(
             featuredImage {
               url
               altText
+            }
+            variants(first: 250) {
+              nodes {
+                id
+                title
+                price
+              }
             }
           }
         }

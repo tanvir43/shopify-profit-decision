@@ -24,6 +24,14 @@ export interface CostProfileService {
   ): Promise<CostProfile | null>;
 
   /**
+   * Load all profiles for one Shopify product (all variant scopes).
+   */
+  findAllForProduct(
+    shop: string,
+    productId: string,
+  ): Promise<CostProfile[]>;
+
+  /**
    * Decision-facing projection: same profile with only isActive items.
    * Belongs in service: "what counts for pricing" is a business rule, not a
    * storage concern. Pricing / Discount / Break-even / Bundle / AI must not

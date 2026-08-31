@@ -4,6 +4,7 @@ import type { CostProfile } from "../types";
 export type SaveDetailedBreakdownInput = {
   shop: string;
   productId: string;
+  shopifyVariantId?: string;
   /** ISO 4217 — used when creating a profile that does not exist yet. */
   currency: string;
   /** Raw form amounts keyed by CostItemType. Empty string = not provided. */
@@ -20,6 +21,7 @@ export interface DetailedSetupService {
   getDetailedSetupProfile(
     shop: string,
     productId: string,
+    shopifyVariantId?: string,
   ): Promise<CostProfile | null>;
 
   /**

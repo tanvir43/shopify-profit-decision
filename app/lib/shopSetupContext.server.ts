@@ -1,17 +1,29 @@
 import type { authenticate } from "~/shopify.server";
-import type { ShopifyProductEnrichment } from "~/modules/products/services/shopifyProductsService.server";
+import {
+  toProductEnrichment,
+  type ShopifyProductEnrichment,
+} from "~/modules/products/services/shopifyProductsService.server";
 
 type AdminGraphql = Awaited<ReturnType<typeof authenticate.admin>>["admin"];
+
+type SetupContextProductNode = {
+  id: string;
+  title: string;
+  status: string;
+  featuredImage?: { url: string; altText?: string | null } | null;
+  variants?: {
+    nodes?: Array<{
+      id: string;
+      title: string;
+      price: string;
+    } | null> | null;
+  } | null;
+};
 
 type SetupContextResponse = {
   data?: {
     shop?: { currencyCode?: string };
-    nodes?: Array<{
-      id: string;
-      title: string;
-      status: string;
-      featuredImage?: { url: string; altText?: string | null } | null;
-    } | null>;
+    nodes?: Array<SetupContextProductNode | null>;
   };
   errors?: Array<{ message: string }>;
 };
@@ -64,6 +76,13 @@ export async function fetchShopSetupContext(
               url
               altText
             }
+            variants(first: 250) {
+              nodes {
+                id
+                title
+                price
+              }
+            }
           }
         }
       }
@@ -91,12 +110,7 @@ export async function fetchShopSetupContext(
   const products = new Map<string, ShopifyProductEnrichment>();
   for (const node of json.data?.nodes ?? []) {
     if (node?.id && node.title != null) {
-      products.set(node.id, {
-        title: node.title,
-        status: node.status,
-        imageUrl: node.featuredImage?.url ?? null,
-        imageAlt: node.featuredImage?.altText ?? null,
-      });
+      products.set(node.id, toProductEnrichment(node));
     }
   }
 

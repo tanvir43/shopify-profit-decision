@@ -7,6 +7,11 @@ export {
   type ProductOnboardingPageData,
 } from "./ProductOnboardingPage";
 export {
+  ProductVariantSelectionPage,
+  type ProductVariantSelectionPageData,
+  type VariantSelectionActionData,
+} from "./ProductVariantSelectionPage";
+export {
   ProductDecisionDashboardPage,
   type ProductDecisionDashboardData,
 } from "./ProductDecisionDashboardPage";

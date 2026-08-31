@@ -28,6 +28,7 @@ import {
   type DetailedSetupActionData,
 } from "~/modules/products";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
+import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -54,10 +55,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Tracked product not found.", { status: 404 });
   }
 
+  const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
+
   const [profile, setup] = await Promise.all([
     detailedSetupService.getDetailedSetupProfile(
       session.shop,
       tracked.shopifyProductId,
+      shopifyVariantId,
     ),
     fetchShopSetupContext(admin, session.shop, [tracked.shopifyProductId]),
   ]);
@@ -121,6 +125,7 @@ export const action = async ({
     await detailedSetupService.saveDetailedBreakdown({
       shop: session.shop,
       productId: tracked.shopifyProductId,
+      shopifyVariantId: await resolveTrackedProductVariantId(admin, tracked),
       currency,
       amounts,
     });

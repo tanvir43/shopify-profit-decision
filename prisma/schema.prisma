@@ -77,7 +77,7 @@ enum CostProfileMode {
   DETAILED
 }
 
-/// One cost profile per Shopify product within a shop.
+/// One cost profile per Shopify product (and optionally variant) within a shop.
 /// Future modules attach pricing/discount/break-even decisions to this profile
 /// rather than inventing parallel cost trees.
 model CostProfile {
@@ -86,6 +86,9 @@ model CostProfile {
   shop      String
   /// Shopify product identifier (GID preferred). Not a local FK.
   productId String
+  /// Shopify ProductVariant GID. Empty string = product-level profile (legacy rows
+  /// and products without meaningful variants). Non-empty = variant-specific costing.
+  shopifyVariantId String @default("")
   /// ISO 4217 currency code governing FIXED CostItem values (e.g. "USD").
   currency  String
   /// How cost data was entered — quick total vs detailed breakdown.
@@ -101,8 +104,8 @@ model CostProfile {
 
   items CostItem[]
 
-  /// Enforces: one Cost Profile per Shopify Product per shop.
-  @@unique([shop, productId])
+  /// Enforces: one Cost Profile per Shopify product + variant scope per shop.
+  @@unique([shop, productId, shopifyVariantId])
   @@index([shop])
 }
 
@@ -155,6 +158,9 @@ model TrackedProduct {
   shopId           String
   /// Shopify product identifier (GID preferred). Not a local FK.
   shopifyProductId String
+  /// Merchant's selected Shopify ProductVariant GID for costing context.
+  /// Null until a variant is chosen (or auto-selected for single-variant products).
+  selectedShopifyVariantId String?
   /// When the merchant added this product to the workspace.
   trackedAt        DateTime @default(now())
   createdAt        DateTime @default(now())

@@ -5,6 +5,7 @@ import type { CostUnit } from "./CostUnit";
 export type EnsureCostProfileInput = {
   shop: string;
   productId: string;
+  shopifyVariantId?: string;
   /** ISO 4217 — required when creating; ignored when profile already exists. */
   currency: string;
 };
@@ -38,6 +39,7 @@ export type CostProfilePersist = {
   id?: string;
   shop: string;
   productId: string;
+  shopifyVariantId?: string;
   currency: string;
   mode?: CostProfileMode;
   totalCost?: string | null;
@@ -49,6 +51,7 @@ export type CostProfilePersist = {
 export type CreateQuickStartCostProfileInput = {
   shop: string;
   productId: string;
+  shopifyVariantId?: string;
   currency: string;
   totalCost?: string | null;
 };
@@ -56,5 +59,6 @@ export type CreateQuickStartCostProfileInput = {
 export type OpenQuickStartInput = {
   shop: string;
   productId: string;
+  shopifyVariantId?: string;
   currency: string;
 };
