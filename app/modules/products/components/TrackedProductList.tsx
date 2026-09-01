@@ -174,6 +174,7 @@ export function TrackedProductList({
           <s-text-field
             label="Search products"
             name="productSearch"
+            placeholder="Search with product/variant name"
             value={searchQuery}
             onInput={handleSearchInput}
             onChange={handleSearchInput}
