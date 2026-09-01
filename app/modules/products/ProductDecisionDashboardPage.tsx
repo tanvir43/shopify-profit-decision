@@ -422,14 +422,14 @@ function ProductSummarySection({
         </div>
 
         <div style={applyPanelStyle}>
-          <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">Product Cost</s-text>
+          <s-text>
+            <s-text color="subdued">Product Cost: </s-text>
             <s-text type="strong">{evaluatedCostDisplay}</s-text>
-          </s-stack>
-          <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">Selling Price</s-text>
+          </s-text>
+          <s-text>
+            <s-text color="subdued">Selling Price: </s-text>
             <s-text type="strong">{evaluatedSellingPriceDisplay}</s-text>
-          </s-stack>
+          </s-text>
           {canApplyToShopify ? (
             <s-button
               variant="primary"
@@ -449,8 +449,7 @@ const summaryLayoutStyle: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
   alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "var(--p-space-400, 16px) var(--p-space-600, 24px)",
+  gap: "var(--p-space-500, 20px) var(--p-space-800, 32px)",
 };
 
 const summaryMainStyle: CSSProperties = {
@@ -461,10 +460,10 @@ const summaryMainStyle: CSSProperties = {
 const applyPanelStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  alignItems: "flex-end",
-  gap: "var(--p-space-300, 12px)",
-  minWidth: "10rem",
-  marginInlineStart: "auto",
+  alignItems: "flex-start",
+  gap: "var(--p-space-200, 8px)",
+  flex: "0 0 auto",
+  paddingBlockStart: "var(--p-space-100, 4px)",
 };
 
 function StrategiesSection({
