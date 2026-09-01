@@ -38,6 +38,9 @@ function readEventValue(event: Event): string {
   return typeof target?.value === "string" ? target.value : "";
 }
 
+/** Matches compact form fields elsewhere in the workspace (e.g. strategy inputs). */
+const PRODUCT_SEARCH_FIELD_MAX_WIDTH = "320px";
+
 export function TrackedProductList({
   products,
   onAddProducts,
@@ -164,13 +167,18 @@ export function TrackedProductList({
   return (
     <>
       <s-stack direction="block" gap="base">
-        <s-text-field
-          label="Search products"
-          name="productSearch"
-          value={searchQuery}
-          onInput={handleSearchInput}
-          onChange={handleSearchInput}
-        />
+        <s-box
+          maxInlineSize={PRODUCT_SEARCH_FIELD_MAX_WIDTH}
+          inlineSize="100%"
+        >
+          <s-text-field
+            label="Search products"
+            name="productSearch"
+            value={searchQuery}
+            onInput={handleSearchInput}
+            onChange={handleSearchInput}
+          />
+        </s-box>
 
         {hasActiveSearch && filteredProducts.length === 0 ? (
           <s-banner tone="info" heading="No matching products">
