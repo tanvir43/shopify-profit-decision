@@ -98,6 +98,8 @@ export type ProjectedOutcome = {
   profitLoss: number | null;
   marginPercent: number | null;
   status: OutcomeStatus | null;
+  /** Per-unit price after unit-level strategies — safe to write to Shopify variant price. */
+  evaluatedSellingPrice: number | null;
 };
 
 export const EMPTY_STRATEGY_FIELDS: StrategyFieldMap = {
@@ -193,6 +195,8 @@ type SimulationDraft = {
   cost: number;
   /** Unit cost before promotional adjustments — used by Buy X Get Y. */
   unitCost: number;
+  /** Per-unit selling price — updated only by unit-level price strategies. */
+  unitSellingPrice: number;
 };
 
 type StrategyApplier = (
@@ -212,6 +216,11 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
       fields.discount.type,
       fields.discount.value,
     ),
+    unitSellingPrice: applyMoneyOff(
+      draft.unitSellingPrice,
+      fields.discount.type,
+      fields.discount.value,
+    ),
   }),
 
   free_shipping: (draft, fields) => {
@@ -225,7 +234,7 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
     return { ...draft, cost: draft.cost + shipping };
   },
 
-  bundle_offer: (draft, _fields) => {
+  bundle_offer: (draft) => {
     // Bundle price is applied as the revenue baseline before the pipeline loop.
     return draft;
   },
@@ -234,6 +243,11 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
     ...draft,
     revenue: applyMoneyOff(
       draft.revenue,
+      fields.coupon.type,
+      fields.coupon.value,
+    ),
+    unitSellingPrice: applyMoneyOff(
+      draft.unitSellingPrice,
       fields.coupon.type,
       fields.coupon.value,
     ),
@@ -269,6 +283,10 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
   flash_sale: (draft, fields) => ({
     ...draft,
     revenue: applyPercentOff(draft.revenue, fields.flash_sale.percentOff),
+    unitSellingPrice: applyPercentOff(
+      draft.unitSellingPrice,
+      fields.flash_sale.percentOff,
+    ),
   }),
 
   referral_bonus: (draft, fields) => {
@@ -319,6 +337,11 @@ const STRATEGY_APPLIERS: Record<StrategyId, StrategyApplier> = {
     return {
       ...draft,
       revenue: unitRevenue * simulatedQuantity,
+      unitSellingPrice: applyMoneyOff(
+        draft.unitSellingPrice,
+        fields.quantity_discount.type,
+        fields.quantity_discount.value,
+      ),
       cost: orderCost,
     };
   },
@@ -353,7 +376,12 @@ export function simulateProjectedOutcome(
   const totalCost = parseRequiredAmount(baseline.totalCost);
 
   if (sellingPrice == null || totalCost == null) {
-    return { profitLoss: null, marginPercent: null, status: null };
+    return {
+      profitLoss: null,
+      marginPercent: null,
+      status: null,
+      evaluatedSellingPrice: null,
+    };
   }
 
   // Bundle price (when set) replaces selling price as the shared revenue baseline
@@ -372,6 +400,7 @@ export function simulateProjectedOutcome(
     revenue: startingRevenue,
     cost: totalCost,
     unitCost: totalCost,
+    unitSellingPrice: startingRevenue,
   };
 
   for (const strategyId of strategies.activeIds) {
@@ -383,11 +412,28 @@ export function simulateProjectedOutcome(
   const marginPercent =
     draft.revenue > 0 ? (profitLoss / draft.revenue) * 100 : null;
 
+  const evaluatedSellingPrice =
+    draft.unitSellingPrice > 0 && Number.isFinite(draft.unitSellingPrice)
+      ? draft.unitSellingPrice
+      : null;
+
   return {
     profitLoss,
     marginPercent,
     status: profitLoss >= 0 ? "Profit" : "Loss",
+    evaluatedSellingPrice,
   };
+}
+
+/** Normalizes a simulation unit price for display and Shopify submission. */
+export function formatEvaluatedSellingPrice(
+  amount: number | null,
+): string | null {
+  if (amount == null || !Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  return amount.toFixed(2);
 }
 
 export function addStrategy(

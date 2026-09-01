@@ -6,6 +6,10 @@ import { formatCurrencyAmount } from "~/modules/cost-profiles/lib/formatCurrency
 import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileMode";
 import type { CostItemType } from "~/modules/cost-profiles/types/CostItemType";
 
+import {
+  ApplyToShopifyModal,
+  APPLY_TO_SHOPIFY_MODAL_ID,
+} from "./components/ApplyToShopifyModal";
 import { CompatibilityWarnings } from "./components/CompatibilityWarnings";
 import {
   CostBreakdownModal,
@@ -27,6 +31,7 @@ import type { VariantContext } from "./lib/variantContext";
 import type { ProductDetailsEnrichment } from "./services/productDetailsEnrichment.server";
 import {
   EMPTY_STRATEGY_INPUTS,
+  formatEvaluatedSellingPrice,
   simulateProjectedOutcome,
   type StrategyInputs,
 } from "./lib/simulateProjectedOutcome";
@@ -116,6 +121,9 @@ function ProductDecisionDashboardContent({
   const [strategies, setStrategies] = useState<StrategyInputs>(
     EMPTY_STRATEGY_INPUTS,
   );
+  const [applySuccessMessage, setApplySuccessMessage] = useState<string | null>(
+    null,
+  );
   const startSellingPriceEditRef = useRef<(() => void) | null>(null);
 
   const handleSetSellingPrice = useCallback(() => {
@@ -130,8 +138,21 @@ function ProductDecisionDashboardContent({
   // Blocking validation pauses all financial projections — no prior result is kept.
   const calculationsPaused = strategyValidation.hasBlockingError;
   const outcome = calculationsPaused
-    ? { profitLoss: null, marginPercent: null, status: null }
+    ? {
+        profitLoss: null,
+        marginPercent: null,
+        status: null,
+        evaluatedSellingPrice: null,
+      }
     : simulateProjectedOutcome({ sellingPrice, totalCost }, strategies);
+
+  const evaluatedSellingPrice = formatEvaluatedSellingPrice(
+    outcome.evaluatedSellingPrice,
+  );
+  const evaluatedSellingPriceDisplay =
+    evaluatedSellingPrice != null
+      ? formatCurrencyAmount(evaluatedSellingPrice, currency)
+      : "—";
 
   const compatibilityWarnings = analyzeStrategyCompatibility(strategies);
 
@@ -156,6 +177,14 @@ function ProductDecisionDashboardContent({
     ? formatCurrencyAmount(sellingPrice, currency)
     : "—";
   const sellingPriceReady = isSellingPriceReady(sellingPrice);
+  const hasProductCost =
+    totalCost != null && totalCost.trim() !== "" && Number(totalCost) > 0;
+  const canApplyToShopify =
+    !calculationsPaused && hasProductCost && evaluatedSellingPrice != null;
+
+  const handleApplyToShopifySuccess = useCallback((message: string) => {
+    setApplySuccessMessage(message);
+  }, []);
 
   const backHref = trackedProductsListHref(trackedProductId);
 
@@ -169,6 +198,12 @@ function ProductDecisionDashboardContent({
       }
     >
       <s-stack direction="block" gap="large-100">
+        {applySuccessMessage ? (
+          <s-banner tone="success" heading="Shopify updated">
+            <p>{applySuccessMessage}</p>
+          </s-banner>
+        ) : null}
+
         <ProductSummarySection
           productTitle={productTitle}
           variant={variant}
@@ -184,6 +219,7 @@ function ProductDecisionDashboardContent({
           sellingPrice={sellingPrice}
           sellingPriceDisplay={sellingPriceDisplay}
           showSellingPriceRequiredWarning={!sellingPriceReady}
+          canApplyToShopify={canApplyToShopify}
           startSellingPriceEditRef={startSellingPriceEditRef}
           isQuickStart={isQuickStart}
         />
@@ -192,7 +228,7 @@ function ProductDecisionDashboardContent({
           productTitle={productTitle}
           variantTitle={variant.title}
           costDisplay={costDisplay}
-          sellingPriceDisplay={sellingPriceDisplay}
+          sellingPriceDisplay={evaluatedSellingPriceDisplay}
           outcome={outcome}
           currency={currency}
           calculationsPaused={calculationsPaused}
@@ -237,6 +273,17 @@ function ProductDecisionDashboardContent({
           saveLabel="Save"
         />
       ) : null}
+      {canApplyToShopify && evaluatedSellingPrice != null && totalCost != null ? (
+        <ApplyToShopifyModal
+          trackedProductId={trackedProductId}
+          productTitle={productTitle}
+          variant={variant}
+          currency={currency}
+          evaluatedSellingPrice={evaluatedSellingPrice}
+          totalCost={totalCost}
+          onSuccess={handleApplyToShopifySuccess}
+        />
+      ) : null}
     </PageLayout>
   );
 }
@@ -271,6 +318,7 @@ function ProductSummarySection({
   sellingPrice,
   sellingPriceDisplay,
   showSellingPriceRequiredWarning,
+  canApplyToShopify,
   startSellingPriceEditRef,
   isQuickStart,
 }: {
@@ -288,6 +336,7 @@ function ProductSummarySection({
   sellingPrice: string | null;
   sellingPriceDisplay: string;
   showSellingPriceRequiredWarning: boolean;
+  canApplyToShopify: boolean;
   startSellingPriceEditRef: MutableRefObject<(() => void) | null>;
   isQuickStart: boolean;
 }) {
@@ -352,6 +401,18 @@ function ProductSummarySection({
             Selling Price is required before evaluation of price strategy
             simulation.
           </s-banner>
+        ) : null}
+
+        {canApplyToShopify ? (
+          <s-stack direction="inline" gap="base" alignItems="center">
+            <s-button
+              variant="primary"
+              commandFor={APPLY_TO_SHOPIFY_MODAL_ID}
+              command="--show"
+            >
+              Apply to Shopify
+            </s-button>
+          </s-stack>
         ) : null}
       </s-stack>
     </s-section>

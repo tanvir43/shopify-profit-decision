@@ -29,6 +29,7 @@ import {
   resolveProductDetailView,
 } from "~/modules/products/lib/resolveProductDetailView";
 import { handleProductDetailsAction } from "~/modules/products/services/productDetailsActions.server";
+import { handleApplyToShopifyAction } from "~/modules/products/services/applyToShopify.server";
 import { loadProductDetailsEnrichment } from "~/modules/products/services/productDetailsEnrichment.server";
 import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
@@ -168,7 +169,11 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const action = async (
   args: ActionFunctionArgs,
-): Promise<VariantSelectionActionData | Awaited<ReturnType<typeof handleProductDetailsAction>>> => {
+): Promise<
+  | VariantSelectionActionData
+  | Awaited<ReturnType<typeof handleProductDetailsAction>>
+  | Awaited<ReturnType<typeof handleApplyToShopifyAction>>
+> => {
   const { request, params } = args;
   const { session, admin } = await authenticate.admin(request);
 
@@ -179,6 +184,10 @@ export const action = async (
 
   const formData = await request.formData();
   const intent = formData.get("intent");
+
+  if (intent === "apply-to-shopify") {
+    return handleApplyToShopifyAction(args, formData);
+  }
 
   if (intent === "select-variant") {
     const shopifyVariantId = formData.get("shopifyVariantId");

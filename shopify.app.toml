@@ -6,7 +6,7 @@ application_url = "https://profitpilot-decision.vercel.app/"
 embedded = true
 
 [access_scopes]
-scopes = "read_products"
+scopes = "read_products,write_products,write_inventory"
 
 [webhooks]
 api_version = "2026-01"
