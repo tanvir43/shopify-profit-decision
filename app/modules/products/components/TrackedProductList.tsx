@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher, useRevalidator, useSearchParams } from "react-router";
 
+import { filterTrackedProductsBySearch } from "../lib/filterTrackedProductsBySearch";
 import { TrackedProductRow } from "./TrackedProductRow";
 import { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
 import { TrackedProductsEmptyState } from "./TrackedProductsEmptyState";
@@ -27,6 +28,16 @@ type TrackedProductListProps = {
   addProductsDisabled?: boolean;
 };
 
+function readEventValue(event: Event): string {
+  const currentTarget = event.currentTarget as { value?: string } | null;
+  if (currentTarget && typeof currentTarget.value === "string") {
+    return currentTarget.value;
+  }
+
+  const target = event.target as { value?: string } | null;
+  return typeof target?.value === "string" ? target.value : "";
+}
+
 export function TrackedProductList({
   products,
   onAddProducts,
@@ -42,9 +53,19 @@ export function TrackedProductList({
   const [highlightedProductId, setHighlightedProductId] = useState<
     string | null
   >(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isStopping = fetcher.state !== "idle";
   const highlightFromUrl = searchParams.get("highlight")?.trim() || null;
+  const filteredProducts = useMemo(
+    () => filterTrackedProductsBySearch(products, searchQuery),
+    [products, searchQuery],
+  );
+  const hasActiveSearch = searchQuery.trim().length > 0;
+
+  const handleSearchInput = useCallback((event: Event) => {
+    setSearchQuery(readEventValue(event));
+  }, []);
 
   useEffect(() => {
     if (!highlightFromUrl) {
@@ -142,16 +163,35 @@ export function TrackedProductList({
 
   return (
     <>
-      <s-stack direction="block" gap="small-100">
-        {products.map((product) => (
-          <TrackedProductRow
-            key={product.trackedProductId}
-            {...product}
-            onStopTracking={handleStopTrackingRequest}
-            stopTrackingDisabled={isStopping}
-            highlighted={product.trackedProductId === highlightedProductId}
-          />
-        ))}
+      <s-stack direction="block" gap="base">
+        <s-text-field
+          label="Search products"
+          name="productSearch"
+          value={searchQuery}
+          onInput={handleSearchInput}
+          onChange={handleSearchInput}
+        />
+
+        {hasActiveSearch && filteredProducts.length === 0 ? (
+          <s-banner tone="info" heading="No matching products">
+            <s-text>
+              No tracked products match &quot;{searchQuery.trim()}&quot;. Try
+              another product or variant name.
+            </s-text>
+          </s-banner>
+        ) : null}
+
+        <s-stack direction="block" gap="small-100">
+          {filteredProducts.map((product) => (
+            <TrackedProductRow
+              key={product.trackedProductId}
+              {...product}
+              onStopTracking={handleStopTrackingRequest}
+              stopTrackingDisabled={isStopping}
+              highlighted={product.trackedProductId === highlightedProductId}
+            />
+          ))}
+        </s-stack>
       </s-stack>
 
       {/* TEMP-001 — temporary Launch Sprint testing helper; remove before App Store submission. */}
