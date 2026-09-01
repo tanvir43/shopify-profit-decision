@@ -29,11 +29,14 @@ async function resolveVariantIdForTrackedProduct(
 /**
  * Cost-entry saves for the product details route — keeps fetcher POSTs on-page
  * so save + revalidation avoid a second route's auth/loader stack.
+ *
+ * `formData` must be the already-parsed request body from the route action
+ * (request bodies can only be read once).
  */
-export async function handleProductDetailsAction({
-  request,
-  params,
-}: ActionFunctionArgs): Promise<ProductDetailsActionData> {
+export async function handleProductDetailsAction(
+  { request, params }: ActionFunctionArgs,
+  formData: FormData,
+): Promise<ProductDetailsActionData> {
   const { session, admin } = await authenticate.admin(request);
 
   const trackedProductId = params.trackedProductId?.trim();
@@ -52,7 +55,6 @@ export async function handleProductDetailsAction({
 
   const shopifyVariantId = await resolveVariantIdForTrackedProduct(admin, tracked);
 
-  const formData = await request.formData();
   const intent = formData.get("intent");
 
   if (intent === "quick-start-save") {

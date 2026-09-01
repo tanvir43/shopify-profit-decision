@@ -203,7 +203,7 @@ export const action = async (
     throw redirect(`/app/products/${encodeURIComponent(trackedProductId)}`);
   }
 
-  return handleProductDetailsAction(args);
+  return handleProductDetailsAction(args, formData);
 };
 
 export default function ProductDetailsRoute() {
