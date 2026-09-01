@@ -90,9 +90,10 @@ export function TrackedProductRow({
             <s-stack direction="block" gap="small-100">
               <s-text type="strong">{title}</s-text>
               {selectedVariant ? (
-                <s-text color="subdued">
-                  Variant: {selectedVariant.title}
-                </s-text>
+                <s-badge tone="neutral">
+                  <s-text color="subdued">Variant: </s-text>
+                  <s-text type="strong">{selectedVariant.title}</s-text>
+                </s-badge>
               ) : null}
               <s-badge tone={tone}>{label}</s-badge>
             </s-stack>
