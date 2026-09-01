@@ -1,5 +1,6 @@
 import type { authenticate } from "~/shopify.server";
 
+import { normalizeShopMoneyAmount } from "../lib/normalizeShopMoneyAmount";
 import type { ProductsPageData, ProductsPageInfo, ProductSummary } from "../types";
 
 export const PRODUCTS_PAGE_SIZE = 25;
@@ -24,6 +25,7 @@ export type ShopifyProductVariantEnrichment = {
   id: string;
   title: string;
   price: string;
+  unitCost: string | null;
 };
 
 export type ShopifyProductEnrichment = {
@@ -38,6 +40,11 @@ type ShopifyVariantNode = {
   id: string;
   title: string;
   price: string;
+  inventoryItem?: {
+    unitCost?: {
+      amount?: string | null;
+    } | null;
+  } | null;
 };
 
 type ShopifyProductByIdNode = {
@@ -141,10 +148,15 @@ type ShopifyNodesResponse = {
 function toVariantEnrichment(
   node: ShopifyVariantNode,
 ): ShopifyProductVariantEnrichment {
+  const unitCost = node.inventoryItem?.unitCost?.amount;
+
   return {
     id: node.id,
     title: node.title,
     price: node.price,
+    unitCost: typeof unitCost === "string" && unitCost.trim().length > 0
+      ? unitCost.trim()
+      : null,
   };
 }
 
@@ -205,6 +217,11 @@ export async function fetchProductsByIds(
                 id
                 title
                 price
+                inventoryItem {
+                  unitCost {
+                    amount
+                  }
+                }
               }
             }
           }
@@ -280,9 +297,7 @@ export async function fetchVariantUnitCost(
   }
 
   const amount = json.data?.productVariant?.inventoryItem?.unitCost?.amount;
-  if (typeof amount !== "string" || amount.trim().length === 0) {
-    return null;
-  }
-
-  return amount.trim();
+  return normalizeShopMoneyAmount(
+    typeof amount === "string" ? amount : null,
+  );
 }

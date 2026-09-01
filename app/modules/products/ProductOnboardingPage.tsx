@@ -2,10 +2,11 @@ import { PageLayout } from "~/components/PageLayout";
 
 import { AdvancedSetupModal, ADVANCED_SETUP_MODAL_ID } from "./components/AdvancedSetupModal";
 import { OnboardingChoiceCard } from "./components/OnboardingChoiceCard";
+import { OnboardingPreCostOptions } from "./components/OnboardingPreCostOptions";
 import { QuickStartModal, QUICK_START_MODAL_ID } from "./components/QuickStartModal";
-import { ShopifyPreCostOption } from "./components/ShopifyPreCostOption";
 import { VariantContextBanner } from "./components/VariantContextBanner";
 import { trackedProductsListHref } from "./lib/productStatus";
+import type { OnboardingPreCostOption } from "./services/productOnboardingPreCost.server";
 import type { VariantContext } from "./lib/variantContext";
 
 export type ProductOnboardingPageData = {
@@ -14,7 +15,7 @@ export type ProductOnboardingPageData = {
   variant: VariantContext;
   currency: string;
   totalCost: string | null;
-  shopifyPreCost: string | null;
+  preCostOptions: OnboardingPreCostOption[];
 };
 
 type ProductOnboardingPageProps = {
@@ -32,10 +33,10 @@ export function ProductOnboardingPage({ data }: ProductOnboardingPageProps) {
     variant,
     currency,
     totalCost,
-    shopifyPreCost,
+    preCostOptions,
   } = data;
   const backHref = trackedProductsListHref(trackedProductId);
-  const hasShopifyPreCost = shopifyPreCost != null;
+  const hasPreCostOptions = preCostOptions.length > 0;
 
   return (
     <PageLayout
@@ -49,16 +50,16 @@ export function ProductOnboardingPage({ data }: ProductOnboardingPageProps) {
       <s-stack direction="block" gap="large-100">
         <VariantContextBanner productTitle={productTitle} variant={variant} />
 
-        {hasShopifyPreCost ? (
-          <ShopifyPreCostOption
+        {hasPreCostOptions ? (
+          <OnboardingPreCostOptions
             trackedProductId={trackedProductId}
             currency={currency}
-            totalCost={shopifyPreCost}
+            options={preCostOptions}
           />
         ) : null}
 
         <s-paragraph>
-          {hasShopifyPreCost
+          {hasPreCostOptions
             ? "Or choose how you would like to set up your product cost manually."
             : "Choose the approach that best matches how you currently manage your product costs."}
         </s-paragraph>

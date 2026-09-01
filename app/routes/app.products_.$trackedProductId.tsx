@@ -31,7 +31,7 @@ import {
 import { handleProductDetailsAction } from "~/modules/products/services/productDetailsActions.server";
 import { handleApplyToShopifyAction } from "~/modules/products/services/applyToShopify.server";
 import { loadProductDetailsEnrichment } from "~/modules/products/services/productDetailsEnrichment.server";
-import { loadOnboardingShopifyPreCost } from "~/modules/products/services/productOnboardingPreCost.server";
+import { loadOnboardingPreCostOptions } from "~/modules/products/services/productOnboardingPreCost.server";
 import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { saveTrackedProductVariantSelection } from "~/modules/products/services/variantSelection.server";
@@ -129,7 +129,12 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 
   if (view.kind === "onboarding") {
-    const shopifyPreCost = await loadOnboardingShopifyPreCost(admin, tracked);
+    const preCostOptions = await loadOnboardingPreCostOptions(
+      admin,
+      tracked,
+      profiles,
+      variants,
+    );
 
     return {
       view: "onboarding" as const,
@@ -138,7 +143,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       totalCost: view.totalCost,
       productTitle: view.productTitle,
       variant: view.variant,
-      shopifyPreCost,
+      preCostOptions,
     };
   }
 

@@ -10,12 +10,14 @@ import {
 } from "~/modules/cost-profiles/types/CostItemType";
 import type { DetailedSetupActionData } from "~/modules/products/DetailedSetupPage";
 import type { QuickStartActionData } from "~/modules/products/QuickStartPage";
+import { costProfileService } from "~/modules/cost-profiles/services/costProfileService.server";
 import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { authenticate } from "~/shopify.server";
 
 import { emptyAmounts } from "../components/CostBreakdownForm";
-import { loadOnboardingShopifyPreCost } from "./productOnboardingPreCost.server";
+import { loadOnboardingPreCostOptions } from "./productOnboardingPreCost.server";
+import { fetchProductsByIds } from "./shopifyProductsService.server";
 
 export type ProductDetailsActionData =
   | QuickStartActionData
@@ -77,13 +79,8 @@ export async function handleProductDetailsAction(
     );
   }
 
-  if (intent === "use-shopify-pre-cost") {
-    return handleUseShopifyPreCost(
-      admin,
-      tracked,
-      session.shop,
-      shopifyVariantId,
-    );
+  if (intent === "use-pre-cost" || intent === "use-shopify-pre-cost") {
+    return handleUsePreCost(admin, tracked, session.shop, shopifyVariantId, formData);
   }
 
   return { ok: false, error: "We couldn't save your cost. Try again." };
@@ -128,19 +125,40 @@ async function handleQuickStartSave(
   }
 }
 
-async function handleUseShopifyPreCost(
+async function handleUsePreCost(
   admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"],
   tracked: NonNullable<Awaited<ReturnType<typeof trackedProductService.getTrackedProduct>>>,
   shop: string,
   shopifyVariantId: string,
+  formData: FormData,
 ): Promise<QuickStartActionData> {
-  const preCost = await loadOnboardingShopifyPreCost(admin, tracked);
+  const preCostIdRaw = formData.get("preCostId");
+  const preCostId =
+    typeof preCostIdRaw === "string" && preCostIdRaw.trim().length > 0
+      ? preCostIdRaw.trim()
+      : "shopify";
 
-  if (!preCost) {
+  const [profiles, enrichmentMap] = await Promise.all([
+    costProfileService.findAllForProduct(shop, tracked.shopifyProductId),
+    fetchProductsByIds(admin, [tracked.shopifyProductId]),
+  ]);
+  const variants = enrichmentMap.get(tracked.shopifyProductId)?.variants ?? [];
+  const options = await loadOnboardingPreCostOptions(
+    admin,
+    tracked,
+    profiles,
+    variants,
+  );
+
+  const selected =
+    options.find((option) => option.id === preCostId) ??
+    (preCostId === "shopify" ? options[0] : undefined);
+
+  if (!selected) {
     return {
       ok: false,
       error:
-        "No Shopify product cost is available for this product. Add a cost manually instead.",
+        "That product cost is no longer available. Refresh and try again.",
     };
   }
 
@@ -155,7 +173,7 @@ async function handleUseShopifyPreCost(
       shop,
       productId: tracked.shopifyProductId,
       shopifyVariantId,
-      totalCostRaw: preCost,
+      totalCostRaw: selected.totalCost,
       currency,
     });
 
