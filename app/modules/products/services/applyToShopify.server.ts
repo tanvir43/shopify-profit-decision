@@ -5,9 +5,10 @@ import { validateQuickStartTotalCost } from "~/modules/cost-profiles/lib/validat
 import { costProfileService } from "~/modules/cost-profiles/services/costProfileService.server";
 import { authenticate } from "~/shopify.server";
 
-import { PRODUCT_LEVEL_VARIANT_ID } from "../lib/variantContext";
 import { trackedProductService } from "./trackedProductService.server";
-import { resolveTrackedProductVariantId } from "./variantSelection.server";
+import {
+  resolveTrackedProductVariantScope,
+} from "./variantSelection.server";
 
 type AdminGraphql = Awaited<ReturnType<typeof authenticate.admin>>["admin"];
 
@@ -252,12 +253,10 @@ export async function handleApplyToShopifyAction(
     };
   }
 
-  const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
+  const { costProfileVariantId, shopifyVariantId } =
+    await resolveTrackedProductVariantScope(admin, tracked);
 
-  if (
-    !shopifyVariantId ||
-    shopifyVariantId === PRODUCT_LEVEL_VARIANT_ID
-  ) {
+  if (!shopifyVariantId) {
     return {
       ok: false,
       error:
@@ -276,7 +275,7 @@ export async function handleApplyToShopifyAction(
     session.shop,
     tracked.shopifyProductId,
   );
-  const profile = findProfileForVariant(profiles, shopifyVariantId);
+  const profile = findProfileForVariant(profiles, costProfileVariantId);
 
   if (!profile) {
     return {
