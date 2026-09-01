@@ -3,6 +3,7 @@ import { PageLayout } from "~/components/PageLayout";
 import { AdvancedSetupModal, ADVANCED_SETUP_MODAL_ID } from "./components/AdvancedSetupModal";
 import { OnboardingChoiceCard } from "./components/OnboardingChoiceCard";
 import { QuickStartModal, QUICK_START_MODAL_ID } from "./components/QuickStartModal";
+import { ShopifyPreCostOption } from "./components/ShopifyPreCostOption";
 import { VariantContextBanner } from "./components/VariantContextBanner";
 import { trackedProductsListHref } from "./lib/productStatus";
 import type { VariantContext } from "./lib/variantContext";
@@ -13,6 +14,7 @@ export type ProductOnboardingPageData = {
   variant: VariantContext;
   currency: string;
   totalCost: string | null;
+  shopifyPreCost: string | null;
 };
 
 type ProductOnboardingPageProps = {
@@ -24,8 +26,16 @@ type ProductOnboardingPageProps = {
  * Cost entry opens in modals so merchants skip a full route loader round-trip.
  */
 export function ProductOnboardingPage({ data }: ProductOnboardingPageProps) {
-  const { trackedProductId, productTitle, variant, currency, totalCost } = data;
+  const {
+    trackedProductId,
+    productTitle,
+    variant,
+    currency,
+    totalCost,
+    shopifyPreCost,
+  } = data;
   const backHref = trackedProductsListHref(trackedProductId);
+  const hasShopifyPreCost = shopifyPreCost != null;
 
   return (
     <PageLayout
@@ -39,9 +49,18 @@ export function ProductOnboardingPage({ data }: ProductOnboardingPageProps) {
       <s-stack direction="block" gap="large-100">
         <VariantContextBanner productTitle={productTitle} variant={variant} />
 
+        {hasShopifyPreCost ? (
+          <ShopifyPreCostOption
+            trackedProductId={trackedProductId}
+            currency={currency}
+            totalCost={shopifyPreCost}
+          />
+        ) : null}
+
         <s-paragraph>
-          Choose the approach that best matches how you currently manage your
-          product costs.
+          {hasShopifyPreCost
+            ? "Or choose how you would like to set up your product cost manually."
+            : "Choose the approach that best matches how you currently manage your product costs."}
         </s-paragraph>
 
         <s-grid

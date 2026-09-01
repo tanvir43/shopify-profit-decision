@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 
 import { getCachedShopCurrency } from "~/lib/shopSetupContext.server";
+import { resolveShopCurrency } from "~/lib/shopCurrency.server";
 import { CostProfileValidationError } from "~/modules/cost-profiles";
 import { detailedSetupService } from "~/modules/cost-profiles/services/detailedSetupService.server";
 import { quickStartService } from "~/modules/cost-profiles/services/quickStartService.server";
@@ -14,6 +15,7 @@ import { trackedProductService } from "~/modules/products/services/trackedProduc
 import { authenticate } from "~/shopify.server";
 
 import { emptyAmounts } from "../components/CostBreakdownForm";
+import { loadOnboardingShopifyPreCost } from "./productOnboardingPreCost.server";
 
 export type ProductDetailsActionData =
   | QuickStartActionData
@@ -75,6 +77,15 @@ export async function handleProductDetailsAction(
     );
   }
 
+  if (intent === "use-shopify-pre-cost") {
+    return handleUseShopifyPreCost(
+      admin,
+      tracked,
+      session.shop,
+      shopifyVariantId,
+    );
+  }
+
   return { ok: false, error: "We couldn't save your cost. Try again." };
 }
 
@@ -105,6 +116,46 @@ async function handleQuickStartSave(
       productId: shopifyProductId,
       shopifyVariantId,
       totalCostRaw,
+      currency,
+    });
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof CostProfileValidationError) {
+      return { ok: false, error: error.message };
+    }
+    return { ok: false, error: "We couldn't save your cost. Try again." };
+  }
+}
+
+async function handleUseShopifyPreCost(
+  admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"],
+  tracked: NonNullable<Awaited<ReturnType<typeof trackedProductService.getTrackedProduct>>>,
+  shop: string,
+  shopifyVariantId: string,
+): Promise<QuickStartActionData> {
+  const preCost = await loadOnboardingShopifyPreCost(admin, tracked);
+
+  if (!preCost) {
+    return {
+      ok: false,
+      error:
+        "No Shopify product cost is available for this product. Add a cost manually instead.",
+    };
+  }
+
+  const currency =
+    getCachedShopCurrency(shop) || (await resolveShopCurrency(admin, shop));
+  if (!currency) {
+    return { ok: false, error: "We couldn't save your cost. Try again." };
+  }
+
+  try {
+    await quickStartService.saveQuickStartCost({
+      shop,
+      productId: tracked.shopifyProductId,
+      shopifyVariantId,
+      totalCostRaw: preCost,
       currency,
     });
 

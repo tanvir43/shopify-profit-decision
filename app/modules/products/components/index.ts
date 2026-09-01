@@ -31,3 +31,4 @@ export { TrackedProductRow } from "./TrackedProductRow";
 export { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
 export { TrackedProductsEmptyState } from "./TrackedProductsEmptyState";
 export { OnboardingChoiceCard } from "./OnboardingChoiceCard";
+export { ShopifyPreCostOption } from "./ShopifyPreCostOption";

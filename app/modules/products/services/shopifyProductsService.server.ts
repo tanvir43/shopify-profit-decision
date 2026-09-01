@@ -230,3 +230,59 @@ export async function fetchProductsByIds(
 
   return products;
 }
+
+type VariantUnitCostResponse = {
+  data?: {
+    productVariant?: {
+      inventoryItem?: {
+        unitCost?: {
+          amount?: string | null;
+        } | null;
+      } | null;
+    } | null;
+  };
+  errors?: Array<{ message: string }>;
+};
+
+/**
+ * Reads the inventory unit cost Shopify already stores for a variant.
+ * Returns a normalized amount when present and valid, otherwise null.
+ */
+export async function fetchVariantUnitCost(
+  admin: AdminGraphql,
+  shopifyVariantId: string,
+): Promise<string | null> {
+  const variantId = shopifyVariantId.trim();
+  if (!variantId) {
+    return null;
+  }
+
+  const response = await admin.graphql(
+    `#graphql
+      query VariantInventoryUnitCost($id: ID!) {
+        productVariant(id: $id) {
+          inventoryItem {
+            unitCost {
+              amount
+            }
+          }
+        }
+      }
+    `,
+    { variables: { id: variantId } },
+  );
+
+  const json = (await response.json()) as VariantUnitCostResponse;
+
+  if (json.errors?.length) {
+    console.error("VariantInventoryUnitCost GraphQL errors:", json.errors);
+    return null;
+  }
+
+  const amount = json.data?.productVariant?.inventoryItem?.unitCost?.amount;
+  if (typeof amount !== "string" || amount.trim().length === 0) {
+    return null;
+  }
+
+  return amount.trim();
+}
