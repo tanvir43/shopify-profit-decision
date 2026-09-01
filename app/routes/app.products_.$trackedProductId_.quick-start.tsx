@@ -26,7 +26,7 @@ import {
 } from "~/modules/products";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
 import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
-import { toVariantContext, resolveCostProfileVariantId } from "~/modules/products/lib/variantContext";
+import { toVariantContext } from "~/modules/products/lib/variantContext";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -62,10 +62,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     );
     const enrichment = setup.products.get(tracked.shopifyProductId);
     const variants = enrichment?.variants ?? [];
-    const shopifyVariantId = resolveCostProfileVariantId(
-      variants,
-      tracked.selectedShopifyVariantId,
-    );
+    const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
 
     const profile = await quickStartService.getQuickStartProfile(
       session.shop,

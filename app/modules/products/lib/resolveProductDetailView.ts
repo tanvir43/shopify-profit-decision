@@ -5,6 +5,7 @@ import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileM
 import { hasProductCost } from "./productStatus";
 import type { ShopifyProductVariantEnrichment } from "../services/shopifyProductsService.server";
 import {
+  resolveCostProfileVariantId,
   toVariantContext,
   type VariantContext,
 } from "./variantContext";
@@ -137,6 +138,35 @@ function buildVariantSelectionView(input: {
     currency: input.currency,
     variants: buildVariantSelectionOptions(input.variants, input.profiles),
   };
+}
+
+/**
+ * Cost profile scope for saves and lookups — matches the profile shown on the
+ * product detail view, including legacy product-level rows (empty variant id).
+ */
+export function resolveActiveCostProfileVariantId(input: {
+  variants: ShopifyProductVariantEnrichment[];
+  profiles: CostProfile[];
+  selectedShopifyVariantId: string | null;
+}): string {
+  const view = resolveProductDetailView({
+    trackedProductId: "",
+    currency: "",
+    productTitle: "",
+    productStatus: "",
+    imageUrl: null,
+    imageAlt: null,
+    ...input,
+  });
+
+  if (view.kind === "dashboard" || view.kind === "onboarding") {
+    return view.shopifyVariantId;
+  }
+
+  return resolveCostProfileVariantId(
+    input.variants,
+    input.selectedShopifyVariantId,
+  );
 }
 
 export function hasValidVariantSelection(

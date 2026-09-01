@@ -1,6 +1,8 @@
 import type { authenticate } from "~/shopify.server";
 
-import { resolveCostProfileVariantId } from "../lib/variantContext";
+import { costProfileService } from "~/modules/cost-profiles/services/costProfileService.server";
+
+import { resolveActiveCostProfileVariantId } from "../lib/resolveProductDetailView";
 import type { TrackedProduct } from "../types/TrackedProduct";
 import { fetchProductsByIds } from "./shopifyProductsService.server";
 import { trackedProductService } from "./trackedProductService.server";
@@ -11,13 +13,17 @@ export async function resolveTrackedProductVariantId(
   admin: AdminGraphql,
   tracked: TrackedProduct,
 ): Promise<string> {
-  const products = await fetchProductsByIds(admin, [tracked.shopifyProductId]);
+  const [products, profiles] = await Promise.all([
+    fetchProductsByIds(admin, [tracked.shopifyProductId]),
+    costProfileService.findAllForProduct(tracked.shopId, tracked.shopifyProductId),
+  ]);
   const variants = products.get(tracked.shopifyProductId)?.variants ?? [];
 
-  return resolveCostProfileVariantId(
+  return resolveActiveCostProfileVariantId({
     variants,
-    tracked.selectedShopifyVariantId,
-  );
+    profiles,
+    selectedShopifyVariantId: tracked.selectedShopifyVariantId,
+  });
 }
 
 /**
