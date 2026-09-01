@@ -15,4 +15,5 @@ export type TrackedProductWorkspaceItem = {
   /** True when a product cost is saved — Decision Workspace / simulation ready. */
   hasProductCost: boolean;
   variants: Pick<ProductVariant, "id" | "title" | "price">[];
+  selectedShopifyVariantId: string | null;
 };

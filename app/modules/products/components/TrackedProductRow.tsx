@@ -35,6 +35,7 @@ export function TrackedProductRow({
   trackedAt,
   hasProductCost,
   variants,
+  selectedShopifyVariantId,
   onStopTracking,
   stopTrackingDisabled = false,
   highlighted = false,
@@ -55,6 +56,10 @@ export function TrackedProductRow({
       : imageUrl
         ? `Photo of ${title}`
         : "";
+  const selectedVariant =
+    variants.length > 1 && selectedShopifyVariantId
+      ? variants.find((variant) => variant.id === selectedShopifyVariantId)
+      : undefined;
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) {
@@ -84,6 +89,11 @@ export function TrackedProductRow({
             )}
             <s-stack direction="block" gap="small-100">
               <s-text type="strong">{title}</s-text>
+              {selectedVariant ? (
+                <s-text color="subdued">
+                  Variant: {selectedVariant.title}
+                </s-text>
+              ) : null}
               <s-badge tone={tone}>{label}</s-badge>
             </s-stack>
           </s-stack>
@@ -105,6 +115,7 @@ export function TrackedProductRow({
                     trackedAt,
                     hasProductCost,
                     variants,
+                    selectedShopifyVariantId,
                   })
                 }
               >

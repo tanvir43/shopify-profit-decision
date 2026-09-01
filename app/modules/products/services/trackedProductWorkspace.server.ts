@@ -42,6 +42,7 @@ function toWorkspaceItem(
       trackedAt,
       hasProductCost: productHasCost,
       variants: shopify.variants,
+      selectedShopifyVariantId: product.selectedShopifyVariantId,
     };
   }
 
@@ -56,6 +57,7 @@ function toWorkspaceItem(
       trackedAt,
       hasProductCost: productHasCost,
       variants: [],
+      selectedShopifyVariantId: product.selectedShopifyVariantId,
     };
   }
 
@@ -69,6 +71,7 @@ function toWorkspaceItem(
     trackedAt,
     hasProductCost: productHasCost,
     variants: [],
+    selectedShopifyVariantId: product.selectedShopifyVariantId,
   };
 }
 
