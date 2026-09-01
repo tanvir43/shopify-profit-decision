@@ -11,6 +11,7 @@ import {
 
 type StickyWorkspaceHeaderProps = {
   productTitle: string;
+  variantTitle?: string | null;
   costDisplay: string;
   sellingPriceDisplay: string;
   outcome: ProjectedOutcome;
@@ -50,6 +51,15 @@ const metricStyle: CSSProperties = {
 const productNameStyle: CSSProperties = {
   ...metricStyle,
   flex: "1 1 10rem",
+  maxWidth: "100%",
+};
+
+const productTitleRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "var(--p-space-200, 8px)",
+  minWidth: 0,
   maxWidth: "100%",
 };
 
@@ -124,6 +134,7 @@ function profitValueStyle(status: OutcomeStatus | null): CSSProperties {
  */
 export function StickyWorkspaceHeader({
   productTitle,
+  variantTitle,
   costDisplay,
   sellingPriceDisplay,
   outcome,
@@ -171,8 +182,16 @@ export function StickyWorkspaceHeader({
         <div style={rowStyle}>
           <div style={productNameStyle}>
             <s-text color="subdued">Product Name</s-text>
-            <div style={productNameTextStyle}>
-              <s-text type="strong">{productTitle}</s-text>
+            <div style={productTitleRowStyle}>
+              <div style={productNameTextStyle}>
+                <s-text type="strong">{productTitle}</s-text>
+              </div>
+              {variantTitle ? (
+                <s-badge tone="neutral">
+                  <s-text color="subdued">Variant: </s-text>
+                  <s-text type="strong">{variantTitle}</s-text>
+                </s-badge>
+              ) : null}
             </div>
           </div>
           <div style={metricStyle}>

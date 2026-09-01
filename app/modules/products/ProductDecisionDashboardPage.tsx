@@ -190,6 +190,7 @@ function ProductDecisionDashboardContent({
 
         <StickyWorkspaceHeader
           productTitle={productTitle}
+          variantTitle={variant.title}
           costDisplay={costDisplay}
           sellingPriceDisplay={sellingPriceDisplay}
           outcome={outcome}
@@ -302,7 +303,10 @@ function ProductSummarySection({
           <s-stack direction="block" gap="small-100">
             <s-heading>{productTitle}</s-heading>
             {variant.title ? (
-              <s-text>Variant: {variant.title}</s-text>
+              <s-badge tone="neutral">
+                <s-text color="subdued">Variant: </s-text>
+                <s-text type="strong">{variant.title}</s-text>
+              </s-badge>
             ) : null}
             <s-badge tone={statusTone}>{statusLabel}</s-badge>
           </s-stack>
