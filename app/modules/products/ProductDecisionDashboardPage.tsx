@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useRef, useState, type MutableRefObject } from "react";
+import { Suspense, useCallback, useRef, useState, type CSSProperties, type MutableRefObject } from "react";
 import { Await } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
@@ -31,6 +31,7 @@ import type { VariantContext } from "./lib/variantContext";
 import type { ProductDetailsEnrichment } from "./services/productDetailsEnrichment.server";
 import {
   EMPTY_STRATEGY_INPUTS,
+  formatEvaluatedAmount,
   formatEvaluatedSellingPrice,
   simulateProjectedOutcome,
   type StrategyInputs,
@@ -142,9 +143,16 @@ function ProductDecisionDashboardContent({
         profitLoss: null,
         marginPercent: null,
         status: null,
+        evaluatedTotalCost: null,
         evaluatedSellingPrice: null,
       }
     : simulateProjectedOutcome({ sellingPrice, totalCost }, strategies);
+
+  const evaluatedTotalCost = formatEvaluatedAmount(outcome.evaluatedTotalCost);
+  const evaluatedCostDisplay =
+    evaluatedTotalCost != null
+      ? formatCurrencyAmount(evaluatedTotalCost, currency)
+      : "—";
 
   const evaluatedSellingPrice = formatEvaluatedSellingPrice(
     outcome.evaluatedSellingPrice,
@@ -220,6 +228,8 @@ function ProductDecisionDashboardContent({
           sellingPriceDisplay={sellingPriceDisplay}
           showSellingPriceRequiredWarning={!sellingPriceReady}
           canApplyToShopify={canApplyToShopify}
+          evaluatedCostDisplay={evaluatedCostDisplay}
+          evaluatedSellingPriceDisplay={evaluatedSellingPriceDisplay}
           startSellingPriceEditRef={startSellingPriceEditRef}
           isQuickStart={isQuickStart}
         />
@@ -227,7 +237,7 @@ function ProductDecisionDashboardContent({
         <StickyWorkspaceHeader
           productTitle={productTitle}
           variantTitle={variant.title}
-          costDisplay={costDisplay}
+          costDisplay={evaluatedCostDisplay}
           sellingPriceDisplay={evaluatedSellingPriceDisplay}
           outcome={outcome}
           currency={currency}
@@ -311,6 +321,8 @@ function ProductSummarySection({
   imageUrl,
   thumbnailAlt,
   costDisplay,
+  evaluatedCostDisplay,
+  evaluatedSellingPriceDisplay,
   trackedProductId,
   shopifyVariantId,
   currency,
@@ -329,6 +341,8 @@ function ProductSummarySection({
   imageUrl: string | null;
   thumbnailAlt: string;
   costDisplay: string;
+  evaluatedCostDisplay: string;
+  evaluatedSellingPriceDisplay: string;
   trackedProductId: string;
   shopifyVariantId: string;
   currency: string;
@@ -342,69 +356,81 @@ function ProductSummarySection({
 }) {
   return (
     <s-section heading="Product Summary">
-      <s-stack direction="block" gap="base">
-        <s-stack direction="inline" gap="base" alignItems="center">
-          {imageUrl ? (
-            <s-thumbnail src={imageUrl} alt={thumbnailAlt} size="large" />
-          ) : (
-            <s-thumbnail alt="" size="large" />
-          )}
-          <s-stack direction="block" gap="small-100">
-            <s-heading>{productTitle}</s-heading>
-            {variant.title ? (
-              <s-badge tone="neutral">
-                <s-text color="subdued">Variant: </s-text>
-                <s-text type="strong">{variant.title}</s-text>
-              </s-badge>
-            ) : null}
-            <s-badge tone={statusTone}>{statusLabel}</s-badge>
-          </s-stack>
-        </s-stack>
-
-        <s-stack direction="inline" gap="large-100" alignItems="end">
-          <s-stack direction="inline" gap="large-100" alignItems="end">
-            <s-stack direction="block" gap="small-100">
-              <s-text color="subdued">Product Cost</s-text>
-              <s-text type="strong">{costDisplay}</s-text>
+      <div style={summaryLayoutStyle}>
+        <div style={summaryMainStyle}>
+          <s-stack direction="block" gap="base">
+            <s-stack direction="inline" gap="base" alignItems="center">
+              {imageUrl ? (
+                <s-thumbnail src={imageUrl} alt={thumbnailAlt} size="large" />
+              ) : (
+                <s-thumbnail alt="" size="large" />
+              )}
+              <s-stack direction="block" gap="small-100">
+                <s-heading>{productTitle}</s-heading>
+                {variant.title ? (
+                  <s-badge tone="neutral">
+                    <s-text color="subdued">Variant: </s-text>
+                    <s-text type="strong">{variant.title}</s-text>
+                  </s-badge>
+                ) : null}
+                <s-badge tone={statusTone}>{statusLabel}</s-badge>
+              </s-stack>
             </s-stack>
-            {isQuickStart ? (
-              <s-button
-                variant="secondary"
-                commandFor={QUICK_START_MODAL_ID}
-                command="--show"
-              >
-                Edit Total Cost
-              </s-button>
-            ) : (
-              <s-button
-                variant="secondary"
-                commandFor={COST_BREAKDOWN_MODAL_ID}
-                command="--show"
-              >
-                Edit Cost Breakdown
-              </s-button>
-            )}
+
+            <s-stack direction="inline" gap="large-100" alignItems="end">
+              <s-stack direction="inline" gap="large-100" alignItems="end">
+                <s-stack direction="block" gap="small-100">
+                  <s-text color="subdued">Product Cost</s-text>
+                  <s-text type="strong">{costDisplay}</s-text>
+                </s-stack>
+                {isQuickStart ? (
+                  <s-button
+                    variant="secondary"
+                    commandFor={QUICK_START_MODAL_ID}
+                    command="--show"
+                  >
+                    Edit Total Cost
+                  </s-button>
+                ) : (
+                  <s-button
+                    variant="secondary"
+                    commandFor={COST_BREAKDOWN_MODAL_ID}
+                    command="--show"
+                  >
+                    Edit Cost Breakdown
+                  </s-button>
+                )}
+              </s-stack>
+              <InlineSellingPriceEditor
+                trackedProductId={trackedProductId}
+                shopifyVariantId={shopifyVariantId}
+                currency={currency}
+                totalCost={totalCost}
+                sellingPrice={sellingPrice}
+                sellingPriceDisplay={sellingPriceDisplay}
+                startEditRef={startSellingPriceEditRef}
+              />
+            </s-stack>
+
+            {showSellingPriceRequiredWarning ? (
+              <s-banner tone="warning">
+                Selling Price is required before evaluation of price strategy
+                simulation.
+              </s-banner>
+            ) : null}
           </s-stack>
-          <InlineSellingPriceEditor
-            trackedProductId={trackedProductId}
-            shopifyVariantId={shopifyVariantId}
-            currency={currency}
-            totalCost={totalCost}
-            sellingPrice={sellingPrice}
-            sellingPriceDisplay={sellingPriceDisplay}
-            startEditRef={startSellingPriceEditRef}
-          />
-        </s-stack>
+        </div>
 
-        {showSellingPriceRequiredWarning ? (
-          <s-banner tone="warning">
-            Selling Price is required before evaluation of price strategy
-            simulation.
-          </s-banner>
-        ) : null}
-
-        {canApplyToShopify ? (
-          <s-stack direction="inline" gap="base" alignItems="center">
+        <div style={applyPanelStyle}>
+          <s-stack direction="block" gap="small-100">
+            <s-text color="subdued">Product Cost</s-text>
+            <s-text type="strong">{evaluatedCostDisplay}</s-text>
+          </s-stack>
+          <s-stack direction="block" gap="small-100">
+            <s-text color="subdued">Selling Price</s-text>
+            <s-text type="strong">{evaluatedSellingPriceDisplay}</s-text>
+          </s-stack>
+          {canApplyToShopify ? (
             <s-button
               variant="primary"
               commandFor={APPLY_TO_SHOPIFY_MODAL_ID}
@@ -412,12 +438,34 @@ function ProductSummarySection({
             >
               Apply to Shopify
             </s-button>
-          </s-stack>
-        ) : null}
-      </s-stack>
+          ) : null}
+        </div>
+      </div>
     </s-section>
   );
 }
+
+const summaryLayoutStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "var(--p-space-400, 16px) var(--p-space-600, 24px)",
+};
+
+const summaryMainStyle: CSSProperties = {
+  flex: "1 1 20rem",
+  minWidth: 0,
+};
+
+const applyPanelStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-end",
+  gap: "var(--p-space-300, 12px)",
+  minWidth: "10rem",
+  marginInlineStart: "auto",
+};
 
 function StrategiesSection({
   currency,

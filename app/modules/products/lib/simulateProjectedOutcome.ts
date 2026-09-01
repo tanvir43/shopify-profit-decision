@@ -98,6 +98,8 @@ export type ProjectedOutcome = {
   profitLoss: number | null;
   marginPercent: number | null;
   status: OutcomeStatus | null;
+  /** Total cost after strategy adjustments in the simulation pipeline. */
+  evaluatedTotalCost: number | null;
   /** Per-unit price after unit-level strategies — safe to write to Shopify variant price. */
   evaluatedSellingPrice: number | null;
 };
@@ -380,6 +382,7 @@ export function simulateProjectedOutcome(
       profitLoss: null,
       marginPercent: null,
       status: null,
+      evaluatedTotalCost: null,
       evaluatedSellingPrice: null,
     };
   }
@@ -412,6 +415,9 @@ export function simulateProjectedOutcome(
   const marginPercent =
     draft.revenue > 0 ? (profitLoss / draft.revenue) * 100 : null;
 
+  const evaluatedTotalCost =
+    draft.cost >= 0 && Number.isFinite(draft.cost) ? draft.cost : null;
+
   const evaluatedSellingPrice =
     draft.unitSellingPrice > 0 && Number.isFinite(draft.unitSellingPrice)
       ? draft.unitSellingPrice
@@ -421,8 +427,18 @@ export function simulateProjectedOutcome(
     profitLoss,
     marginPercent,
     status: profitLoss >= 0 ? "Profit" : "Loss",
+    evaluatedTotalCost,
     evaluatedSellingPrice,
   };
+}
+
+/** Normalizes a simulation currency amount for display. */
+export function formatEvaluatedAmount(amount: number | null): string | null {
+  if (amount == null || !Number.isFinite(amount) || amount < 0) {
+    return null;
+  }
+
+  return amount.toFixed(2);
 }
 
 /** Normalizes a simulation unit price for display and Shopify submission. */
