@@ -49,6 +49,10 @@ type StrategyControlsProps = {
 const STRATEGY_LIBRARY_MODAL_ID = "strategy-library-modal";
 const SELLING_PRICE_REQUIRED_MODAL_ID = "selling-price-required-modal";
 
+function showStrategyAddedMessage(strategyName: string) {
+  shopify.toast.show(`${strategyName} added to this simulation.`);
+}
+
 type ModalElement = HTMLElement & {
   showOverlay: () => void;
   hideOverlay: () => void;
@@ -759,6 +763,7 @@ export function StrategyControls({
                     command="--hide"
                     onClick={() => {
                       commitChange(addStrategy(displayValues, strategy.id));
+                      showStrategyAddedMessage(strategy.label);
                     }}
                   >
                     Add
@@ -807,9 +812,11 @@ export function StrategyControls({
                   commandFor={STRATEGY_LIBRARY_MODAL_ID}
                   command="--hide"
                   onClick={() => {
+                    const trimmedName = customStrategyName.trim();
                     commitChange(
-                      addCustomStrategy(displayValues, customStrategyName),
+                      addCustomStrategy(displayValues, trimmedName),
                     );
+                    showStrategyAddedMessage(trimmedName);
                     setCustomStrategyName("");
                   }}
                 >
