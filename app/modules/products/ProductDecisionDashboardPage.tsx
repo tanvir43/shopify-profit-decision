@@ -261,6 +261,7 @@ function ProductDecisionDashboardContent({
           sellingPriceReady={sellingPriceReady}
           onSetSellingPrice={handleSetSellingPrice}
           fieldErrors={strategyValidation.errors}
+          customStrategyErrors={strategyValidation.customStrategyErrors}
           fieldWarnings={strategyValidation.warnings}
         />
       </s-stack>
@@ -473,6 +474,7 @@ function StrategiesSection({
   sellingPriceReady,
   onSetSellingPrice,
   fieldErrors,
+  customStrategyErrors,
   fieldWarnings,
 }: {
   currency: string;
@@ -481,6 +483,7 @@ function StrategiesSection({
   sellingPriceReady: boolean;
   onSetSellingPrice: () => void;
   fieldErrors: Partial<Record<StrategyId, string>>;
+  customStrategyErrors: Record<string, string>;
   fieldWarnings: Partial<Record<StrategyId, string>>;
 }) {
   return (
@@ -497,6 +500,7 @@ function StrategiesSection({
           sellingPriceReady={sellingPriceReady}
           onSetSellingPrice={onSetSellingPrice}
           fieldErrors={fieldErrors}
+          customStrategyErrors={customStrategyErrors}
           fieldWarnings={fieldWarnings}
         />
       </s-stack>

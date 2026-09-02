@@ -8,6 +8,7 @@ import type {
 export type StrategyBusinessValidation = {
   errors: Partial<Record<StrategyId, string>>;
   warnings: Partial<Record<StrategyId, string>>;
+  customStrategyErrors: Record<string, string>;
   hasBlockingError: boolean;
 };
 
@@ -134,6 +135,7 @@ export function validateStrategyBusinessRules(
 ): StrategyBusinessValidation {
   const errors: Partial<Record<StrategyId, string>> = {};
   const warnings: Partial<Record<StrategyId, string>> = {};
+  const customStrategyErrors: Record<string, string> = {};
 
   const sellingPrice = parseRequiredAmount(baseline.sellingPrice);
   const fields = strategies.fields;
@@ -285,9 +287,30 @@ export function validateStrategyBusinessRules(
     }
   }
 
+  for (const custom of strategies.customStrategies) {
+    if (revenue == null) {
+      break;
+    }
+
+    if (custom.type === "percentage" && isPercentageOver100(custom.value)) {
+      customStrategyErrors[custom.id] = PERCENTAGE_OVER_100_MESSAGE;
+      continue;
+    }
+
+    const next = moneyOffWithoutClamp(revenue, custom.type, custom.value);
+    if (next != null && next < 0) {
+      customStrategyErrors[custom.id] = NEGATIVE_SELLING_PRICE_STRATEGY_MESSAGE;
+    } else if (next != null) {
+      revenue = next;
+    }
+  }
+
   return {
     errors,
     warnings,
-    hasBlockingError: Object.keys(errors).length > 0,
+    customStrategyErrors,
+    hasBlockingError:
+      Object.keys(errors).length > 0 ||
+      Object.keys(customStrategyErrors).length > 0,
   };
 }

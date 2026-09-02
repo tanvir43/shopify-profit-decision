@@ -60,6 +60,14 @@ export type LoyaltyRewardFields = {
   percent: string;
 };
 
+/** Merchant-defined strategy with a custom name and percentage/fixed adjustment. */
+export type CustomStrategyInstance = {
+  id: string;
+  name: string;
+  type: DiscountType;
+  value: string;
+};
+
 /**
  * Per-strategy field bags. New strategies add a key here and an applier —
  * the workspace list stays data-driven.
@@ -85,6 +93,7 @@ export type StrategyFieldMap = {
 export type StrategyInputs = {
   activeIds: StrategyId[];
   fields: StrategyFieldMap;
+  customStrategies: CustomStrategyInstance[];
 };
 
 export type SimulationBaseline = {
@@ -126,7 +135,12 @@ export const EMPTY_STRATEGY_FIELDS: StrategyFieldMap = {
 export const EMPTY_STRATEGY_INPUTS: StrategyInputs = {
   activeIds: [...DEFAULT_ACTIVE_STRATEGY_IDS],
   fields: EMPTY_STRATEGY_FIELDS,
+  customStrategies: [],
 };
+
+function generateCustomStrategyId(): string {
+  return `custom_${crypto.randomUUID()}`;
+}
 
 function parseOptionalAmount(raw: string): number | null {
   const trimmed = raw.trim();
@@ -411,6 +425,18 @@ export function simulateProjectedOutcome(
     draft = apply(draft, strategies.fields);
   }
 
+  for (const custom of strategies.customStrategies) {
+    draft = {
+      ...draft,
+      revenue: applyMoneyOff(draft.revenue, custom.type, custom.value),
+      unitSellingPrice: applyMoneyOff(
+        draft.unitSellingPrice,
+        custom.type,
+        custom.value,
+      ),
+    };
+  }
+
   const profitLoss = draft.revenue - draft.cost;
   const marginPercent =
     draft.revenue > 0 ? (profitLoss / draft.revenue) * 100 : null;
@@ -490,6 +516,56 @@ export function patchStrategyFields<K extends StrategyId>(
         ...partial,
       },
     },
+  };
+}
+
+export function addCustomStrategy(
+  strategies: StrategyInputs,
+  name: string,
+): StrategyInputs {
+  const trimmedName = name.trim();
+  if (trimmedName === "") {
+    return strategies;
+  }
+
+  return {
+    ...strategies,
+    customStrategies: [
+      ...strategies.customStrategies,
+      {
+        id: generateCustomStrategyId(),
+        name: trimmedName,
+        type: "percentage",
+        value: "",
+      },
+    ],
+  };
+}
+
+export function removeCustomStrategy(
+  strategies: StrategyInputs,
+  customStrategyId: string,
+): StrategyInputs {
+  return {
+    ...strategies,
+    customStrategies: strategies.customStrategies.filter(
+      (strategy) => strategy.id !== customStrategyId,
+    ),
+  };
+}
+
+export function patchCustomStrategy(
+  strategies: StrategyInputs,
+  customStrategyId: string,
+  partial: Partial<Omit<CustomStrategyInstance, "id">>,
+): StrategyInputs {
+  return {
+    ...strategies,
+    customStrategies: strategies.customStrategies.map((strategy) =>
+      strategy.id === customStrategyId
+        ? { ...strategy, ...partial }
+        : strategy,
+    ),
   };
 }
 

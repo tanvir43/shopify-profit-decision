@@ -52,11 +52,6 @@ async function readVariantShopifyCost(
   admin: AdminGraphql,
   variant: ShopifyProductVariantEnrichment,
 ): Promise<string | null> {
-  const fromEnrichment = normalizeShopMoneyAmount(variant.unitCost);
-  if (fromEnrichment) {
-    return fromEnrichment;
-  }
-
   const fromShopify = await fetchVariantUnitCost(admin, variant.id);
   return normalizeShopMoneyAmount(fromShopify);
 }

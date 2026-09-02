@@ -54,6 +54,14 @@ const STRATEGY_ACTIVATION: Record<StrategyId, StrategyActivation> = {
   loyalty_reward: (fields) => hasPositiveAmount(fields.loyalty_reward.percent),
 };
 
+/** True when a custom strategy's controls make it participate in analysis. */
+export function isCustomStrategyActive(strategy: {
+  type: string;
+  value: string;
+}): boolean {
+  return hasPositiveAmount(strategy.value);
+}
+
 /** True when the strategy's controls make it participate in analysis. */
 export function isStrategyActive(
   strategyId: StrategyId,

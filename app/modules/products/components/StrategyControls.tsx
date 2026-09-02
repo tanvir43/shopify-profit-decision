@@ -19,11 +19,14 @@ import type {
   StrategyInputs,
 } from "../lib/simulateProjectedOutcome";
 import {
+  addCustomStrategy,
   addStrategy,
+  patchCustomStrategy,
   patchStrategyFields,
+  removeCustomStrategy,
   removeStrategy,
 } from "../lib/simulateProjectedOutcome";
-import { isStrategyActive } from "../lib/strategyActivation";
+import { isCustomStrategyActive, isStrategyActive } from "../lib/strategyActivation";
 import { validatePositiveInteger } from "../lib/validatePositiveInteger";
 import { validateShippingCost } from "../lib/validateShippingCost";
 
@@ -37,6 +40,8 @@ type StrategyControlsProps = {
   onSetSellingPrice: () => void;
   /** Business-rule field errors that block simulation updates. */
   fieldErrors?: Partial<Record<StrategyId, string>>;
+  /** Business-rule errors for merchant-defined custom strategies. */
+  customStrategyErrors?: Record<string, string>;
   /** Business-rule warnings that never block simulation. */
   fieldWarnings?: Partial<Record<StrategyId, string>>;
 };
@@ -572,10 +577,12 @@ export function StrategyControls({
   sellingPriceReady,
   onSetSellingPrice,
   fieldErrors,
+  customStrategyErrors,
   fieldWarnings,
 }: StrategyControlsProps) {
   const currencyPrefix = getCurrencyDisplay(currency);
   const [draft, setDraft] = useState<StrategyInputs | null>(null);
+  const [customStrategyName, setCustomStrategyName] = useState("");
   const modalRef = useRef<ModalElement | null>(null);
   const modalOpenRef = useRef(false);
   const wasSellingPriceReady = useRef(sellingPriceReady);
@@ -612,6 +619,7 @@ export function StrategyControls({
   };
 
   const libraryStrategies = listLibraryStrategies(displayValues.activeIds);
+  const canAddCustomStrategy = customStrategyName.trim() !== "";
 
   return (
     <s-stack direction="block" gap="small-100">
@@ -643,6 +651,63 @@ export function StrategyControls({
                 fieldError: fieldErrors?.[strategyId],
                 fieldWarning: fieldWarnings?.[strategyId],
               })}
+            </StrategyRow>
+          );
+        })}
+
+        {displayValues.customStrategies.map((customStrategy) => {
+          const active = isCustomStrategyActive(customStrategy);
+
+          return (
+            <StrategyRow
+              key={customStrategy.id}
+              title={customStrategy.name}
+              isActive={active}
+              onRemove={() => {
+                commitChange(
+                  removeCustomStrategy(displayValues, customStrategy.id),
+                );
+              }}
+            >
+              <s-stack direction="block" gap="small-100">
+                <s-choice-list
+                  label="Adjustment Type"
+                  name={`customStrategyType-${customStrategy.id}`}
+                  values={[customStrategy.type]}
+                  onChange={(event: Event) => {
+                    const next = readChoiceValues(event)[0];
+                    if (next === "percentage" || next === "fixed") {
+                      commitChange(
+                        patchCustomStrategy(displayValues, customStrategy.id, {
+                          type: next as DiscountType,
+                        }),
+                      );
+                    }
+                  }}
+                >
+                  <s-choice value="percentage">Percentage</s-choice>
+                  <s-choice value="fixed">Fixed Amount</s-choice>
+                </s-choice-list>
+                <StrategyNumericField
+                  label="Amount"
+                  name={`customStrategyValue-${customStrategy.id}`}
+                  value={customStrategy.value}
+                  prefix={
+                    customStrategy.type === "fixed" ? currencyPrefix : undefined
+                  }
+                  suffix={
+                    customStrategy.type === "percentage" ? "%" : undefined
+                  }
+                  error={customStrategyErrors?.[customStrategy.id]}
+                  onValueChange={(value) => {
+                    commitChange(
+                      patchCustomStrategy(displayValues, customStrategy.id, {
+                        value,
+                      }),
+                    );
+                  }}
+                />
+              </s-stack>
             </StrategyRow>
           );
         })}
@@ -702,6 +767,57 @@ export function StrategyControls({
               </s-box>
             ))
           )}
+
+          <s-box
+            padding="small-100"
+            borderWidth="base"
+            borderRadius="base"
+          >
+            <s-stack direction="block" gap="small-200">
+              <s-stack direction="block" gap="none">
+                <s-text type="strong">Custom Strategy</s-text>
+                <s-text color="subdued">
+                  Name your own strategy and choose a percentage or fixed
+                  adjustment.
+                </s-text>
+              </s-stack>
+              <s-stack
+                direction="inline"
+                gap="base"
+                alignItems="end"
+                justifyContent="space-between"
+              >
+                <s-box inlineSize="100%">
+                  <s-text-field
+                    label="Strategy Name"
+                    name="customStrategyName"
+                    value={customStrategyName}
+                    autocomplete="off"
+                    onInput={(event: Event) => {
+                      setCustomStrategyName(readEventValue(event));
+                    }}
+                    onChange={(event: Event) => {
+                      setCustomStrategyName(readEventValue(event));
+                    }}
+                  />
+                </s-box>
+                <s-button
+                  variant="primary"
+                  disabled={!canAddCustomStrategy}
+                  commandFor={STRATEGY_LIBRARY_MODAL_ID}
+                  command="--hide"
+                  onClick={() => {
+                    commitChange(
+                      addCustomStrategy(displayValues, customStrategyName),
+                    );
+                    setCustomStrategyName("");
+                  }}
+                >
+                  Add
+                </s-button>
+              </s-stack>
+            </s-stack>
+          </s-box>
         </s-stack>
 
         <s-button

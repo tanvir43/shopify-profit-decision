@@ -8,7 +8,7 @@
  * not every strategy present in the workspace list.
  */
 
-import { getActiveStrategyIds } from "./strategyActivation";
+import { getActiveStrategyIds, isCustomStrategyActive } from "./strategyActivation";
 import type { StrategyInputs } from "./simulateProjectedOutcome";
 import {
   getStrategyDefinition,
@@ -94,15 +94,13 @@ function buildHeading(rule: CompatibilityRule): string {
 
 function buildWarning(
   rule: CompatibilityRule,
-  strategyIds: readonly StrategyId[],
+  strategyLabels: readonly string[],
 ): CompatibilityWarning {
   return {
     id: rule.id,
     severity: rule.severity,
     heading: buildHeading(rule),
-    strategyLabels: strategyIds.map(
-      (id) => getStrategyDefinition(id).label,
-    ),
+    strategyLabels: [...strategyLabels],
     rationale: rule.rationale,
     calculatedNote: CALCULATED_NOTE,
     recommendation: rule.recommendation,
@@ -119,8 +117,14 @@ export function analyzeStrategyCompatibility(
   rules: readonly CompatibilityRule[] = COMPATIBILITY_RULES,
 ): CompatibilityWarning[] {
   const activeIds = getActiveStrategyIds(strategies);
+  const activeCustomLabels = strategies.customStrategies
+    .filter((strategy) => isCustomStrategyActive(strategy))
+    .map((strategy) => strategy.name);
 
-  if (activeIds.length === 0 || rules.length === 0) {
+  if (
+    (activeIds.length === 0 && activeCustomLabels.length === 0) ||
+    rules.length === 0
+  ) {
     return [];
   }
 
@@ -129,8 +133,16 @@ export function analyzeStrategyCompatibility(
 
   for (const rule of rules) {
     const matching = byCategory.get(rule.category) ?? [];
-    if (matching.length >= rule.minCount) {
-      warnings.push(buildWarning(rule, matching));
+    const strategyLabels = matching.map(
+      (id) => getStrategyDefinition(id).label,
+    );
+
+    if (rule.category === "price_adjustment") {
+      strategyLabels.push(...activeCustomLabels);
+    }
+
+    if (strategyLabels.length >= rule.minCount) {
+      warnings.push(buildWarning(rule, strategyLabels));
     }
   }
 
