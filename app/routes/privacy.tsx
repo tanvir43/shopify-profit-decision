@@ -25,7 +25,7 @@ export default function PrivacyPolicyRoute() {
             <a href="/">ProfitPilot</a>
           </p>
           <h1>Privacy Policy</h1>
-          <p className={styles.updated}>Last Updated: August 2026</p>
+          <p className={styles.updated}>Last Updated: September 2026</p>
         </header>
 
         <section>
@@ -51,27 +51,43 @@ export default function PrivacyPolicyRoute() {
         <section>
           <h2>Shopify Scope and Data We Access</h2>
           <p>
-            ProfitPilot requests the Shopify Admin API scope{" "}
-            <code>read_products</code> only.
+            ProfitPilot requests the following Shopify Admin API scopes:{" "}
+            <code>read_products</code>, <code>write_products</code>,{" "}
+            <code>read_inventory</code>, and <code>write_inventory</code>.
           </p>
           <p>
-            With that permission, ProfitPilot may access the following Shopify
+            With those permissions, ProfitPilot may access the following Shopify
             data as needed to provide the service:
           </p>
           <ul>
             <li>Product ID</li>
             <li>Product title</li>
             <li>Product status</li>
+            <li>Product variants and variant IDs</li>
+            <li>Product/variant selling prices</li>
             <li>Featured image URL and alt text (when available)</li>
+            <li>Inventory item IDs associated with variants</li>
+            <li>
+              Inventory item cost / Cost per item (<code>unitCost</code>) when
+              available
+            </li>
             <li>Store currency (<code>shop.currencyCode</code>)</li>
           </ul>
           <p>
-            Product titles, images, and status are retrieved as needed for
-            display and are not persistently stored as a full product catalog.
-            Product IDs for products you choose to track are stored as described
-            below.
+            Product titles, images, status, variant details, and inventory cost
+            information are retrieved as needed for display and decision support
+            and are not persistently stored as a full product catalog. Product
+            IDs and selected variant IDs for products you choose to track are
+            stored as described below.
           </p>
-          <p>ProfitPilot does not modify your Shopify products.</p>
+          <p>
+            ProfitPilot does not automatically modify Shopify products, variants,
+            or inventory costs. Shopify modifications occur only when you
+            explicitly use and confirm the Apply to Shopify feature. When
+            confirmed, ProfitPilot may update only the selected or resolved
+            Shopify variant&apos;s selling price and the associated inventory
+            item&apos;s product cost.
+          </p>
         </section>
 
         <section>
@@ -84,7 +100,7 @@ export default function PrivacyPolicyRoute() {
             <li>Orders</li>
             <li>Draft orders</li>
             <li>Checkouts</li>
-            <li>Inventory</li>
+            <li>Inventory quantities or stock levels</li>
             <li>Shopify discounts or price rules</li>
           </ul>
           <p>
@@ -104,20 +120,24 @@ export default function PrivacyPolicyRoute() {
           </p>
           <ul>
             <li>Product cost</li>
-            <li>Packaging costs</li>
-            <li>Shipping costs</li>
-            <li>Payment / transaction fees</li>
-            <li>Other custom costs</li>
+            <li>Cost items (including packaging, shipping, payment /
+              transaction fees, and other custom costs)</li>
             <li>Selling price</li>
+            <li>Optional notes associated with a cost profile</li>
           </ul>
           <p>
-            Product IDs are also stored for tracked products and associated cost
-            profiles so the app can reconnect your entered costs to the correct
-            Shopify products.
+            Product IDs and Shopify variant IDs are also stored for tracked
+            products and associated cost profiles so the app can reconnect your
+            entered costs to the correct Shopify products and variants.
           </p>
           <p>
             Selling prices and cost data used in simulations are entered by you
-            in ProfitPilot; they are not written back to your Shopify catalog.
+            in ProfitPilot. They are written back to your Shopify catalog only
+            when you explicitly confirm Apply to Shopify. That action updates
+            the selected Shopify variant using values already available in the
+            app (the confirmed selling price and saved product cost) and does
+            not create simulation records or otherwise rewrite CostProfile or
+            CostItem data as part of the Apply flow.
           </p>
         </section>
 
@@ -155,6 +175,10 @@ export default function PrivacyPolicyRoute() {
             <li>
               Display tracked products and generate profitability simulations
             </li>
+            <li>
+              Apply merchant-confirmed selling price and product cost updates to
+              the selected Shopify variant
+            </li>
             <li>Improve application stability</li>
             <li>Maintain application security</li>
             <li>Comply with Shopify privacy requirements</li>
@@ -169,8 +193,8 @@ export default function PrivacyPolicyRoute() {
           </p>
           <p>
             This includes Shopify shop and session authentication information,
-            tracked product references (product IDs), and merchant-entered cost
-            and selling price information.
+            tracked product references (product IDs and selected variant IDs),
+            and merchant-entered cost and selling price information.
           </p>
           <p>
             Reasonable administrative and technical safeguards are used to
