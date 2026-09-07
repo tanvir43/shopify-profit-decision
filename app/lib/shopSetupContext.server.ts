@@ -16,6 +16,11 @@ type SetupContextProductNode = {
       id: string;
       title: string;
       price: string;
+      inventoryItem?: {
+        unitCost?: {
+          amount?: string | null;
+        } | null;
+      } | null;
     } | null> | null;
   } | null;
 };
@@ -81,6 +86,11 @@ export async function fetchShopSetupContext(
                 id
                 title
                 price
+                inventoryItem {
+                  unitCost {
+                    amount
+                  }
+                }
               }
             }
           }

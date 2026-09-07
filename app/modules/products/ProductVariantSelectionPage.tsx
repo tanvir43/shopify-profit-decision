@@ -127,6 +127,12 @@ export function ProductVariantSelectionPage({
                     <s-text color="subdued">
                       Shopify price: {formatCurrencyAmount(variant.price, currency)}
                     </s-text>
+                    {variant.shopifyUnitCost ? (
+                      <s-text color="subdued">
+                        Shopify cost:{" "}
+                        {formatCurrencyAmount(variant.shopifyUnitCost, currency)}
+                      </s-text>
+                    ) : null}
                     {variant.hasProductCost ? (
                       <s-badge tone="success">Cost saved</s-badge>
                     ) : null}

@@ -2,6 +2,7 @@ import { PRODUCT_LEVEL_VARIANT_ID } from "~/modules/cost-profiles/lib/variantCon
 import type { CostProfile } from "~/modules/cost-profiles/types/CostProfile";
 import type { CostProfileMode } from "~/modules/cost-profiles/types/CostProfileMode";
 
+import { normalizeShopMoneyAmount } from "./normalizeShopMoneyAmount";
 import { hasProductCost } from "./productStatus";
 import type { ShopifyProductVariantEnrichment } from "../services/shopifyProductsService.server";
 import {
@@ -12,6 +13,7 @@ import {
 
 export type VariantSelectionOption = ShopifyProductVariantEnrichment & {
   hasProductCost: boolean;
+  shopifyUnitCost: string | null;
 };
 
 export type ProductDetailView =
@@ -70,6 +72,7 @@ function buildVariantSelectionOptions(
     hasProductCost: readyProfiles.some(
       (profile) => profile.shopifyVariantId === variant.id,
     ),
+    shopifyUnitCost: normalizeShopMoneyAmount(variant.unitCost),
   }));
 }
 

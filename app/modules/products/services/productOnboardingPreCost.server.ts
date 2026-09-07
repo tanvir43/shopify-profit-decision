@@ -48,16 +48,45 @@ function addOption(
   options.push(option);
 }
 
+/**
+ * Reads Shopify Cost per item for a variant — enrichment first, then live fallback.
+ */
 async function readVariantShopifyCost(
   admin: AdminGraphql,
   variant: ShopifyProductVariantEnrichment,
 ): Promise<string | null> {
+  const fromEnrichment = normalizeShopMoneyAmount(variant.unitCost);
+  if (fromEnrichment) {
+    return fromEnrichment;
+  }
+
   const fromShopify = await fetchVariantUnitCost(admin, variant.id);
   return normalizeShopMoneyAmount(fromShopify);
 }
 
+function shopifyCostOption(
+  shopifyVariantId: string,
+  totalCost: string,
+  variants: ShopifyProductVariantEnrichment[],
+): OnboardingPreCostOption {
+  const label = variantLabel(shopifyVariantId, variants);
+  const multiVariant = variants.length > 1;
+
+  return {
+    id: `shopify-${shopifyVariantId}`,
+    title: label
+      ? `Use Shopify cost for ${label}`
+      : multiVariant
+        ? "Use Shopify cost for this variant"
+        : "Use Shopify product cost",
+    description: "Cost already saved in your Shopify admin.",
+    totalCost,
+  };
+}
+
 /**
  * Pre-existing costs the merchant can adopt during onboarding.
+ * Includes Shopify unit costs for the active variant (and other variants when present).
  */
 export async function loadOnboardingPreCostOptions(
   admin: AdminGraphql,
@@ -70,7 +99,7 @@ export async function loadOnboardingPreCostOptions(
     profiles,
     selectedShopifyVariantId: tracked.selectedShopifyVariantId,
   });
-  const shopifyVariantId = resolveShopifyVariantIdForUpdate(
+  const activeShopifyVariantId = resolveShopifyVariantIdForUpdate(
     costProfileVariantId,
     variants,
     tracked.selectedShopifyVariantId,
@@ -79,39 +108,41 @@ export async function loadOnboardingPreCostOptions(
   const options: OnboardingPreCostOption[] = [];
   const seen = new Set<string>();
 
-  if (shopifyVariantId) {
-    const variant = variants.find((item) => item.id === shopifyVariantId);
-    const totalCost = variant
-      ? await readVariantShopifyCost(admin, variant)
-      : normalizeShopMoneyAmount(await fetchVariantUnitCost(admin, shopifyVariantId));
-
-    if (totalCost) {
-      const label = variantLabel(shopifyVariantId, variants);
-      addOption(options, seen, {
-        id: `shopify-${shopifyVariantId}`,
-        title: label ? `Use Shopify cost for ${label}` : "Use Shopify product cost",
-        description: "Cost already saved in your Shopify admin.",
-        totalCost,
-      });
+  // Prefer the variant currently being set up (selected / sole / resolved).
+  const prioritizedIds: string[] = [];
+  if (activeShopifyVariantId) {
+    prioritizedIds.push(activeShopifyVariantId);
+  }
+  for (const variant of variants) {
+    if (!prioritizedIds.includes(variant.id)) {
+      prioritizedIds.push(variant.id);
     }
   }
 
-  for (const variant of variants) {
-    if (variant.id === shopifyVariantId) {
-      continue;
-    }
+  const costByVariantId = new Map<string, string | null>();
 
-    const totalCost = await readVariantShopifyCost(admin, variant);
+  await Promise.all(
+    prioritizedIds.map(async (variantId) => {
+      const variant = variants.find((item) => item.id === variantId);
+      if (variant) {
+        costByVariantId.set(variantId, await readVariantShopifyCost(admin, variant));
+        return;
+      }
+
+      costByVariantId.set(
+        variantId,
+        normalizeShopMoneyAmount(await fetchVariantUnitCost(admin, variantId)),
+      );
+    }),
+  );
+
+  for (const variantId of prioritizedIds) {
+    const totalCost = costByVariantId.get(variantId);
     if (!totalCost) {
       continue;
     }
 
-    addOption(options, seen, {
-      id: `shopify-${variant.id}`,
-      title: `Use Shopify cost for ${variant.title}`,
-      description: "Cost already saved in your Shopify admin.",
-      totalCost,
-    });
+    addOption(options, seen, shopifyCostOption(variantId, totalCost, variants));
   }
 
   for (const profile of profiles) {

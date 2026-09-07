@@ -168,11 +168,15 @@ async function handleUsePreCost(
     return { ok: false, error: "We couldn't save your cost. Try again." };
   }
 
+  // Persist against the variant currently being onboarded (selected / sole).
+  // Shopify option IDs may reference another variant's unit cost as a reusable amount.
+  const targetVariantId = shopifyVariantId;
+
   try {
     await quickStartService.saveQuickStartCost({
       shop,
       productId: tracked.shopifyProductId,
-      shopifyVariantId,
+      shopifyVariantId: targetVariantId,
       totalCostRaw: selected.totalCost,
       currency,
     });

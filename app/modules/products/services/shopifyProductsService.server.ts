@@ -25,6 +25,8 @@ export type ShopifyProductVariantEnrichment = {
   id: string;
   title: string;
   price: string;
+  /** Shopify inventory unit cost / Cost per item when available. Not persisted. */
+  unitCost: string | null;
 };
 
 export type ShopifyProductEnrichment = {
@@ -39,6 +41,11 @@ type ShopifyVariantNode = {
   id: string;
   title: string;
   price: string;
+  inventoryItem?: {
+    unitCost?: {
+      amount?: string | null;
+    } | null;
+  } | null;
 };
 
 type ShopifyProductByIdNode = {
@@ -142,10 +149,16 @@ type ShopifyNodesResponse = {
 function toVariantEnrichment(
   node: ShopifyVariantNode,
 ): ShopifyProductVariantEnrichment {
+  const unitCost = node.inventoryItem?.unitCost?.amount;
+
   return {
     id: node.id,
     title: node.title,
     price: node.price,
+    unitCost:
+      typeof unitCost === "string" && unitCost.trim().length > 0
+        ? unitCost.trim()
+        : null,
   };
 }
 
@@ -206,6 +219,11 @@ export async function fetchProductsByIds(
                 id
                 title
                 price
+                inventoryItem {
+                  unitCost {
+                    amount
+                  }
+                }
               }
             }
           }
