@@ -1,5 +1,5 @@
-import { Suspense } from "react";
-import { Await } from "react-router";
+import { Suspense, type ReactNode } from "react";
+import { Await, Link } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
 
@@ -14,11 +14,39 @@ import {
 } from "./hooks/useAddTrackedProducts";
 import type { TrackedProductWorkspaceData } from "./services/trackedProductWorkspace.server";
 
+export type TrackedProductUsageSummary = {
+  currentCount: number;
+  limit: number | null;
+  isUnlimited: boolean;
+  planDisplayName: string;
+};
+
 export type TrackedProductsPageData = {
   trackedCount: number;
   trackedShopifyProductIds: string[];
+  productUsage: TrackedProductUsageSummary;
   workspace: Promise<TrackedProductWorkspaceData>;
 };
+
+function TrackedProductUsageIndicator({
+  usage,
+}: {
+  usage: TrackedProductUsageSummary;
+}) {
+  const remainingCount =
+    usage.limit === null ? null : Math.max(0, usage.limit - usage.currentCount);
+
+  return (
+    <s-stack direction="block" gap="small-100">
+      <s-text type="strong">Tracked products</s-text>
+      <s-text color="subdued">
+        {usage.isUnlimited
+          ? `${usage.currentCount} used · Unlimited plan`
+          : `${usage.currentCount} of ${usage.limit} used · ${remainingCount} available`}
+      </s-text>
+    </s-stack>
+  );
+}
 
 type ProductsPageProps = {
   data: TrackedProductsPageData;
@@ -28,12 +56,14 @@ type WorkspaceContentProps = {
   workspace: TrackedProductWorkspaceData;
   onAddProducts: () => void;
   addProductsDisabled: boolean;
+  contentBeforeList: ReactNode;
 };
 
 function WorkspaceContent({
   workspace,
   onAddProducts,
   addProductsDisabled,
+  contentBeforeList,
 }: WorkspaceContentProps) {
   return (
     <>
@@ -46,6 +76,7 @@ function WorkspaceContent({
         products={workspace.items}
         onAddProducts={onAddProducts}
         addProductsDisabled={addProductsDisabled}
+        contentBeforeList={contentBeforeList}
       />
     </>
   );
@@ -55,16 +86,43 @@ function WorkspaceContent({
  * Tracked Products Workspace — references enriched at runtime from Shopify.
  */
 export function ProductsPage({ data }: ProductsPageProps) {
-  const { addProducts, isTracking, trackError, clearTrackError } =
-    useAddTrackedProducts({
-      trackedShopifyProductIds: data.trackedShopifyProductIds,
-    });
+  const {
+    addProducts,
+    isTracking,
+    trackError,
+    trackErrorCode,
+    clearTrackError,
+  } = useAddTrackedProducts({
+    trackedShopifyProductIds: data.trackedShopifyProductIds,
+  });
   const hasProducts = data.trackedCount > 0;
 
-  const trackErrorHeading =
-    trackError === ALREADY_TRACKED_MESSAGE
+  const isLimitError = trackErrorCode === "TRACKED_PRODUCT_LIMIT_EXCEEDED";
+  const isAtLimit =
+    data.productUsage.limit !== null &&
+    data.productUsage.currentCount >= data.productUsage.limit;
+
+  const trackErrorHeading = isLimitError
+    ? "Tracked product limit reached"
+    : trackError === ALREADY_TRACKED_MESSAGE
       ? "Product already tracked"
       : "Couldn't track products";
+
+  const usageSummary = (
+    <s-stack direction="block" gap="base">
+      <TrackedProductUsageIndicator usage={data.productUsage} />
+      {isAtLimit ? (
+        <s-banner
+          tone="warning"
+          heading={`You've reached your ${data.productUsage.planDisplayName} plan limit of ${data.productUsage.limit} tracked products.`}
+        >
+          <Link to="/app/pricing">
+            <s-button>Manage plan</s-button>
+          </Link>
+        </s-banner>
+      ) : null}
+    </s-stack>
+  );
 
   return (
     <PageLayout
@@ -84,21 +142,24 @@ export function ProductsPage({ data }: ProductsPageProps) {
     >
       {trackError ? (
         <s-banner
-          tone={
-            trackError === ALREADY_TRACKED_MESSAGE ? "warning" : "critical"
-          }
+          tone={trackError === ALREADY_TRACKED_MESSAGE ? "warning" : "critical"}
           heading={trackErrorHeading}
           dismissible
           onDismiss={clearTrackError}
         >
-          <s-text>{trackError}</s-text>
+          <s-stack direction="block" gap="small">
+            <s-text>{trackError}</s-text>
+            {isLimitError && !isAtLimit ? (
+              <Link to="/app/pricing">
+                <s-button variant="primary">Manage plan</s-button>
+              </Link>
+            ) : null}
+          </s-stack>
         </s-banner>
       ) : null}
       {hasProducts ? (
         <Suspense
-          fallback={
-            <TrackedProductListSkeleton count={data.trackedCount} />
-          }
+          fallback={<TrackedProductListSkeleton count={data.trackedCount} />}
         >
           <Await resolve={data.workspace}>
             {(workspace) => (
@@ -106,12 +167,14 @@ export function ProductsPage({ data }: ProductsPageProps) {
                 workspace={workspace}
                 onAddProducts={addProducts}
                 addProductsDisabled={isTracking}
+                contentBeforeList={usageSummary}
               />
             )}
           </Await>
         </Suspense>
       ) : (
         <s-stack direction="block" gap="base">
+          {usageSummary}
           <EmptyStateOnboardingCard
             onAddProducts={addProducts}
             addProductsDisabled={isTracking}

@@ -8,39 +8,13 @@ import {
   buildHostedPricingPlansUrl,
   checkActiveSubscription,
 } from "~/lib/partnerApi.server";
+import { resolveShopGid } from "~/lib/shopIdentity.server";
 import { authenticate } from "~/shopify.server";
-
-type ShopIdResponse = {
-  data?: {
-    shop?: {
-      id?: string;
-    };
-  };
-  errors?: Array<{ message: string }>;
-};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session, redirect } = await authenticate.admin(request);
 
-  const shopResponse = await admin.graphql(
-    `#graphql
-      query ShopId {
-        shop {
-          id
-        }
-      }
-    `,
-  );
-
-  const shopJson = (await shopResponse.json()) as ShopIdResponse;
-
-  if (shopJson.errors?.length || !shopJson.data?.shop?.id) {
-    throw new Response("Unable to resolve shop identity from Shopify.", {
-      status: 502,
-    });
-  }
-
-  const shopId = shopJson.data.shop.id;
+  const shopId = await resolveShopGid(admin);
   const { hasActiveSubscription } = await checkActiveSubscription(shopId);
 
   if (!hasActiveSubscription) {

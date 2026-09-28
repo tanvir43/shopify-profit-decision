@@ -1,4 +1,11 @@
+import type { PlanEntitlement } from "~/lib/planEntitlements.server";
+
 import type { TrackedProduct } from "../types/TrackedProduct";
+
+export type TrackProductsOptions = {
+  maxTrackedProducts: number | null;
+  entitlement?: PlanEntitlement;
+};
 
 /**
  * Business orchestration for Tracked Products.
@@ -27,7 +34,11 @@ export interface TrackedProductService {
    * Ignores duplicates (input + already tracked). Bulk inserts efficiently.
    * Returns newly tracked count.
    */
-  trackProducts(shopId: string, productIds: string[]): Promise<number>;
+  trackProducts(
+    shopId: string,
+    productIds: string[],
+    options?: TrackProductsOptions,
+  ): Promise<number>;
 
   /**
    * Remove a tracked product reference. No Cost Profile changes.

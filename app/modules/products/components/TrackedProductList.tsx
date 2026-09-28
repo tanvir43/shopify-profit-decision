@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useFetcher, useRevalidator, useSearchParams } from "react-router";
 
 import { filterTrackedProductsBySearch } from "../lib/filterTrackedProductsBySearch";
@@ -14,8 +21,7 @@ export const STOP_TRACKING_MODAL_ID = "temp-stop-tracking-modal";
 const HIGHLIGHT_DURATION_MS = 10000;
 
 export type StopTrackingActionData =
-  | { ok: true }
-  | { ok: false; error: string };
+  { ok: true } | { ok: false; error: string };
 
 type ModalElement = HTMLElement & {
   showOverlay: () => void;
@@ -26,6 +32,7 @@ type TrackedProductListProps = {
   products: TrackedProductWorkspaceItem[];
   onAddProducts: () => void;
   addProductsDisabled?: boolean;
+  contentBeforeList?: ReactNode;
 };
 
 function readEventValue(event: Event): string {
@@ -45,6 +52,7 @@ export function TrackedProductList({
   products,
   onAddProducts,
   addProductsDisabled = false,
+  contentBeforeList,
 }: TrackedProductListProps) {
   const fetcher = useFetcher<StopTrackingActionData>();
   const revalidator = useRevalidator();
@@ -167,10 +175,7 @@ export function TrackedProductList({
   return (
     <>
       <s-stack direction="block" gap="base">
-        <s-box
-          maxInlineSize={PRODUCT_SEARCH_FIELD_MAX_WIDTH}
-          inlineSize="100%"
-        >
+        <s-box maxInlineSize={PRODUCT_SEARCH_FIELD_MAX_WIDTH} inlineSize="100%">
           <s-text-field
             label="Search products"
             name="productSearch"
@@ -180,6 +185,8 @@ export function TrackedProductList({
             onChange={handleSearchInput}
           />
         </s-box>
+
+        {contentBeforeList}
 
         {hasActiveSearch && filteredProducts.length === 0 ? (
           <s-banner tone="info" heading="No matching products">

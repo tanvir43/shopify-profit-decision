@@ -3,7 +3,7 @@ import { useFetcher, useRevalidator } from "react-router";
 
 export type TrackProductsActionData =
   | { ok: true; newlyTracked: number }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: "TRACKED_PRODUCT_LIMIT_EXCEEDED" };
 
 /** Shown when the merchant tries to add a product that is already tracked. */
 export const ALREADY_TRACKED_MESSAGE =
@@ -74,7 +74,9 @@ export function useAddTrackedProducts({
     }
 
     const selectedIds = selection.map((product) => product.id);
-    const newProductIds = selectedIds.filter((id) => !alreadyTrackedIds.has(id));
+    const newProductIds = selectedIds.filter(
+      (id) => !alreadyTrackedIds.has(id),
+    );
 
     if (newProductIds.length === 0) {
       setTrackError(ALREADY_TRACKED_MESSAGE);
@@ -91,10 +93,14 @@ export function useAddTrackedProducts({
     setTrackError(null);
   }, []);
 
+  const trackErrorCode =
+    fetcher.data != null && !fetcher.data.ok ? fetcher.data.code : undefined;
+
   return {
     addProducts,
     isTracking,
     trackError,
+    trackErrorCode,
     clearTrackError,
   };
 }

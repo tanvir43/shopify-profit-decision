@@ -7,6 +7,10 @@ import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import prisma from "~/db.server";
+import { resolveShopGid } from "~/lib/shopIdentity.server";
+import { stopTrackingProduct } from "~/lib/stopTrackingProduct.server";
+import { TrackedProductLimitExceededError } from "~/lib/trackedProductCapacity";
+import { loadTrackedProductUsage } from "~/lib/trackedProductUsage.server";
 import { ProductsPage } from "~/modules/products";
 import type { StopTrackingActionData } from "~/modules/products/components/TrackedProductList";
 import type { TrackProductsActionData } from "~/modules/products/hooks/useAddTrackedProducts";
@@ -23,11 +27,24 @@ import { authenticate } from "~/shopify.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
 
-  const tracked = await trackedProductService.listTrackedProducts(session.shop);
+  const shopGid = await resolveShopGid(admin);
+
+  const [tracked, productUsage] = await Promise.all([
+    trackedProductService.listTrackedProducts(session.shop),
+    loadTrackedProductUsage(prisma, session.shop, shopGid),
+  ]);
 
   return {
     trackedCount: tracked.length,
-    trackedShopifyProductIds: tracked.map((product) => product.shopifyProductId),
+    trackedShopifyProductIds: tracked.map(
+      (product) => product.shopifyProductId,
+    ),
+    productUsage: {
+      currentCount: productUsage.currentCount,
+      limit: productUsage.limit,
+      isUnlimited: productUsage.isUnlimited,
+      planDisplayName: productUsage.entitlement.displayName,
+    },
     workspace: loadTrackedProductWorkspace(admin, tracked, session.shop),
   };
 };
@@ -37,7 +54,7 @@ export const action = async ({
 }: ActionFunctionArgs): Promise<
   TrackProductsActionData | StopTrackingActionData
 > => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   const formData = await request.formData();
 
@@ -60,17 +77,7 @@ export const action = async ({
     const shopifyProductId = shopifyProductIdRaw.trim();
 
     try {
-      // CostItem rows cascade when CostProfile is deleted.
-      await prisma.costProfile.deleteMany({
-        where: {
-          shop: session.shop,
-          productId: shopifyProductId,
-        },
-      });
-      await trackedProductService.untrackProduct(
-        session.shop,
-        shopifyProductId,
-      );
+      await stopTrackingProduct(prisma, session.shop, shopifyProductId);
 
       return { ok: true };
     } catch {
@@ -90,11 +97,11 @@ export const action = async ({
   let productIds: string[];
   try {
     const parsed: unknown = JSON.parse(productIdsRaw);
-    if (
-      !Array.isArray(parsed) ||
-      parsed.some((id) => typeof id !== "string")
-    ) {
-      return { ok: false, error: "We couldn't track those products. Try again." };
+    if (!Array.isArray(parsed) || parsed.some((id) => typeof id !== "string")) {
+      return {
+        ok: false,
+        error: "We couldn't track those products. Try again.",
+      };
     }
     productIds = parsed;
   } catch {
@@ -102,9 +109,27 @@ export const action = async ({
   }
 
   try {
+    const shopGid = await resolveShopGid(admin);
+    const productUsage = await loadTrackedProductUsage(
+      prisma,
+      session.shop,
+      shopGid,
+    );
+
+    if (!productUsage.hasActiveSubscription) {
+      return {
+        ok: false,
+        error: "Choose an active plan before tracking products.",
+      };
+    }
+
     const newlyTracked = await trackedProductService.trackProducts(
       session.shop,
       productIds,
+      {
+        maxTrackedProducts: productUsage.limit,
+        entitlement: productUsage.entitlement,
+      },
     );
 
     if (newlyTracked === 0) {
@@ -112,7 +137,15 @@ export const action = async ({
     }
 
     return { ok: true, newlyTracked };
-  } catch {
+  } catch (error) {
+    if (error instanceof TrackedProductLimitExceededError) {
+      return {
+        ok: false,
+        error: error.message,
+        code: error.code,
+      };
+    }
+
     return { ok: false, error: "We couldn't track those products. Try again." };
   }
 };

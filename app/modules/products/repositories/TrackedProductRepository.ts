@@ -1,3 +1,5 @@
+import type { PlanEntitlement } from "~/lib/planEntitlements.server";
+
 import type { TrackedProduct } from "../types/TrackedProduct";
 
 /**
@@ -24,8 +26,18 @@ export interface TrackedProductRepository {
   /**
    * Bulk insert tracked references. Skips rows that already exist
    * (unique on shopId + shopifyProductId). Returns newly inserted count.
+   *
+   * When `maxTrackedProducts` is set, the insert runs in a transaction and
+   * rejects the whole batch if capacity would be exceeded (no partial inserts).
    */
-  trackProducts(shopId: string, productIds: string[]): Promise<number>;
+  trackProducts(
+    shopId: string,
+    productIds: string[],
+    options?: {
+      maxTrackedProducts: number | null;
+      entitlement?: PlanEntitlement;
+    },
+  ): Promise<number>;
 
   /**
    * Remove one tracked reference by natural key. No-op if not tracked.

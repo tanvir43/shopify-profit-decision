@@ -1,6 +1,9 @@
 import type { TrackedProductRepository } from "../repositories/TrackedProductRepository";
 import type { TrackedProduct } from "../types/TrackedProduct";
-import type { TrackedProductService } from "./TrackedProductService";
+import type {
+  TrackedProductService,
+  TrackProductsOptions,
+} from "./TrackedProductService";
 
 /**
  * Application service for Tracked Product use cases.
@@ -31,6 +34,7 @@ export function createTrackedProductService(
     async trackProducts(
       shopId: string,
       productIds: string[],
+      options?: TrackProductsOptions,
     ): Promise<number> {
       // Ignore empty / whitespace ids and de-dupe the input batch.
       const uniqueIds = [
@@ -44,7 +48,7 @@ export function createTrackedProductService(
       }
 
       // Repository createMany(skipDuplicates) ignores already-tracked rows.
-      return repository.trackProducts(shopId, uniqueIds);
+      return repository.trackProducts(shopId, uniqueIds, options);
     },
 
     async untrackProduct(shopId: string, productId: string): Promise<void> {
@@ -65,7 +69,11 @@ export function createTrackedProductService(
         return null;
       }
 
-      return repository.selectVariant(shopId, trackedProductId.trim(), variantId);
+      return repository.selectVariant(
+        shopId,
+        trackedProductId.trim(),
+        variantId,
+      );
     },
   };
 }

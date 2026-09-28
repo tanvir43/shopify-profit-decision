@@ -1,5 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
 
+import {
+  buildTrackedProductLimitError,
+  canAddTrackedProducts,
+  countNewUniqueProductIds,
+  TrackedProductLimitExceededError,
+} from "~/lib/trackedProductCapacity";
+import type { PlanEntitlement } from "~/lib/planEntitlements.server";
+
 import { toTrackedProductDomain } from "../mappers/trackedProductMapper";
 import type { TrackedProduct } from "../types/TrackedProduct";
 import type { TrackedProductRepository } from "./TrackedProductRepository";
@@ -38,20 +46,102 @@ export function createPrismaTrackedProductRepository(
     async trackProducts(
       shopId: string,
       productIds: string[],
+      options?: {
+        maxTrackedProducts: number | null;
+        entitlement?: PlanEntitlement;
+      },
     ): Promise<number> {
       if (productIds.length === 0) {
         return 0;
       }
 
-      const result = await prisma.trackedProduct.createMany({
-        data: productIds.map((shopifyProductId) => ({
-          shopId,
-          shopifyProductId,
-        })),
-        skipDuplicates: true,
-      });
+      const uniqueIds = [
+        ...new Set(
+          productIds.map((id) => id.trim()).filter((id) => id.length > 0),
+        ),
+      ];
 
-      return result.count;
+      if (uniqueIds.length === 0) {
+        return 0;
+      }
+
+      const maxTrackedProducts = options?.maxTrackedProducts ?? null;
+
+      if (maxTrackedProducts === null) {
+        const result = await prisma.trackedProduct.createMany({
+          data: uniqueIds.map((shopifyProductId) => ({
+            shopId,
+            shopifyProductId,
+          })),
+          skipDuplicates: true,
+        });
+
+        return result.count;
+      }
+
+      const entitlement = options?.entitlement;
+
+      return prisma.$transaction(
+        async (tx) => {
+          const existingRows = await tx.trackedProduct.findMany({
+            where: {
+              shopId,
+              shopifyProductId: { in: uniqueIds },
+            },
+            select: { shopifyProductId: true },
+          });
+
+          const alreadyTracked = new Set(
+            existingRows.map((row) => row.shopifyProductId),
+          );
+          const additional = countNewUniqueProductIds(
+            uniqueIds,
+            alreadyTracked,
+          );
+
+          if (additional === 0) {
+            return 0;
+          }
+
+          const currentCount = await tx.trackedProduct.count({
+            where: { shopId },
+          });
+
+          const allowed = canAddTrackedProducts(
+            { currentCount, limit: maxTrackedProducts },
+            additional,
+          );
+
+          if (!allowed) {
+            if (!entitlement) {
+              throw new TrackedProductLimitExceededError(
+                "Your plan does not allow adding more tracked products.",
+              );
+            }
+
+            throw buildTrackedProductLimitError(
+              entitlement,
+              currentCount,
+              additional,
+            );
+          }
+
+          const newIds = uniqueIds.filter((id) => !alreadyTracked.has(id));
+
+          const result = await tx.trackedProduct.createMany({
+            data: newIds.map((shopifyProductId) => ({
+              shopId,
+              shopifyProductId,
+            })),
+            skipDuplicates: true,
+          });
+
+          return result.count;
+        },
+        {
+          isolationLevel: "Serializable",
+        },
+      );
     },
 
     async untrackProduct(shopId: string, productId: string): Promise<void> {
