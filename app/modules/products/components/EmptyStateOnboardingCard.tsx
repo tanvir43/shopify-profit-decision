@@ -266,6 +266,7 @@ export function EmptyStateOnboardingCard({
                 variant="primary"
                 onClick={onAddProducts}
                 disabled={addProductsDisabled}
+                loading={addProductsDisabled}
               >
                 Add Your First Product
               </s-button>

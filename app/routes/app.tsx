@@ -1,5 +1,11 @@
+import { useEffect } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import {
+  Outlet,
+  useLoaderData,
+  useNavigation,
+  useRouteError,
+} from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
@@ -28,6 +34,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function AppLayout() {
   const { apiKey } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    shopify.loading(navigation.state !== "idle");
+  }, [navigation.state]);
+
+  useEffect(() => {
+    return () => {
+      shopify.loading(false);
+    };
+  }, []);
 
   return (
     <AppProvider embedded apiKey={apiKey}>

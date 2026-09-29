@@ -26,6 +26,7 @@ export function TrackedProductsEmptyState({
               variant="primary"
               onClick={onAddProducts}
               disabled={addProductsDisabled}
+              loading={addProductsDisabled}
             >
               Add Products
             </s-button>

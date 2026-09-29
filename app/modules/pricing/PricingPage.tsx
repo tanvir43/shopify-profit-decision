@@ -1,9 +1,21 @@
-import { useSubmit } from "react-router";
+import { useCallback } from "react";
+import { useNavigation, useSubmit } from "react-router";
 
 import { PageLayout } from "~/components/PageLayout";
 
 export function PricingPage() {
   const submit = useSubmit();
+  const navigation = useNavigation();
+  const isManagingPlan =
+    navigation.state !== "idle" && navigation.formMethod === "POST";
+
+  const handleManagePlan = useCallback(() => {
+    if (isManagingPlan) {
+      return;
+    }
+
+    submit(null, { method: "post" });
+  }, [isManagingPlan, submit]);
 
   return (
     <PageLayout
@@ -12,7 +24,9 @@ export function PricingPage() {
         <s-button
           slot="primary-action"
           variant="primary"
-          onClick={() => submit(null, { method: "post" })}
+          disabled={isManagingPlan}
+          loading={isManagingPlan}
+          onClick={handleManagePlan}
         >
           Manage plan
         </s-button>

@@ -134,6 +134,7 @@ export function ProductsPage({ data }: ProductsPageProps) {
             variant="primary"
             onClick={addProducts}
             disabled={isTracking}
+            loading={isTracking}
           >
             Add Products
           </s-button>
