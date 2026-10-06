@@ -9,12 +9,24 @@ import {
 } from "../lib/productStatus";
 import type { TrackedProductWorkspaceItem } from "../types/TrackedProductWorkspaceItem";
 
+function readChecked(event: Event): boolean {
+  const currentTarget = event.currentTarget as { checked?: boolean } | null;
+  if (currentTarget && typeof currentTarget.checked === "boolean") {
+    return currentTarget.checked;
+  }
+
+  const target = event.target as { checked?: boolean } | null;
+  return Boolean(target?.checked);
+}
+
 type TrackedProductRowProps = TrackedProductWorkspaceItem & {
   /** TEMP-001 — temporary Launch Sprint testing helper; remove before App Store submission. */
   onStopTracking?: (product: TrackedProductWorkspaceItem) => void;
   stopTrackingDisabled?: boolean;
   /** Briefly emphasize the row after returning from the product detail page. */
   highlighted?: boolean;
+  selected?: boolean;
+  onSelectedChange?: (selected: boolean) => void;
 };
 
 /** Focus treatment for the product the merchant just navigated back from. */
@@ -39,6 +51,8 @@ export function TrackedProductRow({
   onStopTracking,
   stopTrackingDisabled = false,
   highlighted = false,
+  selected = false,
+  onSelectedChange,
 }: TrackedProductRowProps) {
   const { label, tone } = formatProductStatus(status);
   const unavailable = isTrackedProductUnavailable(status);
@@ -82,6 +96,16 @@ export function TrackedProductRow({
           justifyContent="space-between"
         >
           <s-stack direction="inline" gap="base" alignItems="center">
+            {onSelectedChange ? (
+              <s-checkbox
+                label={`Select ${title}`}
+                labelAccessibilityVisibility="exclusive"
+                checked={selected}
+                onChange={(event: Event) => {
+                  onSelectedChange(readChecked(event));
+                }}
+              />
+            ) : null}
             {imageUrl ? (
               <s-thumbnail src={imageUrl} alt={thumbnailAlt} size="small" />
             ) : (

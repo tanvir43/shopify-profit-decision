@@ -13,6 +13,9 @@ export {
   QUICK_START_MODAL_ID,
 } from "./QuickStartModal";
 export { InlineSellingPriceEditor } from "./InlineSellingPriceEditor";
+export { SaveComparisonModal } from "./SaveComparisonModal";
+export { SavedComparisonsList } from "./SavedComparisonsList";
+export { SellingPriceEditModal } from "./SellingPriceEditModal";
 export {
   SellingPriceMethodFields,
   type SellingPricePricingMethod,

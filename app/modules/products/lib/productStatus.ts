@@ -68,3 +68,53 @@ export function detailedSetupHref(trackedProductId: string): string {
 export function sellingPriceHref(trackedProductId: string): string {
   return `/app/products/${encodeURIComponent(trackedProductId)}/selling-price`;
 }
+
+const COMPARE_SCENARIOS_IDS_PARAM = "ids";
+
+/**
+ * Comparison shell. Selected tracked-product IDs travel in the query string
+ * so they survive navigation without persisted UI state.
+ */
+export function compareScenariosHref(trackedProductIds: string[]): string {
+  const uniqueIds: string[] = [];
+  const seen = new Set<string>();
+
+  for (const trackedProductId of trackedProductIds) {
+    const id = trackedProductId.trim();
+    if (!id || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    uniqueIds.push(id);
+  }
+
+  if (uniqueIds.length === 0) {
+    return "/app/products/compare";
+  }
+
+  const params = new URLSearchParams({
+    [COMPARE_SCENARIOS_IDS_PARAM]: uniqueIds.join(","),
+  });
+  return `/app/products/compare?${params.toString()}`;
+}
+
+export function parseCompareScenarioIds(searchParams: URLSearchParams): string[] {
+  const raw = searchParams.get(COMPARE_SCENARIOS_IDS_PARAM) ?? "";
+  if (!raw.trim()) {
+    return [];
+  }
+
+  const ids: string[] = [];
+  const seen = new Set<string>();
+
+  for (const part of raw.split(",")) {
+    const id = part.trim();
+    if (!id || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    ids.push(id);
+  }
+
+  return ids;
+}

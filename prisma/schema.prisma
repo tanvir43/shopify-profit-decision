@@ -81,26 +81,26 @@ enum CostProfileMode {
 /// Future modules attach pricing/discount/break-even decisions to this profile
 /// rather than inventing parallel cost trees.
 model CostProfile {
-  id        String   @id @default(cuid())
+  id               String          @id @default(cuid())
   /// Shop domain (e.g. "store.myshopify.com") — multi-tenant isolation key.
-  shop      String
+  shop             String
   /// Shopify product identifier (GID preferred). Not a local FK.
-  productId String
+  productId        String
   /// Shopify ProductVariant GID. Empty string = product-level profile (legacy rows
   /// and products without meaningful variants). Non-empty = variant-specific costing.
-  shopifyVariantId String @default("")
+  shopifyVariantId String          @default("")
   /// ISO 4217 currency code governing FIXED CostItem values (e.g. "USD").
-  currency  String
+  currency         String
   /// How cost data was entered — quick total vs detailed breakdown.
-  mode      CostProfileMode @default(DETAILED)
+  mode             CostProfileMode @default(DETAILED)
   /// Merchant-entered total product cost (Quick Start). Optional for DETAILED.
-  totalCost Decimal?        @db.Decimal(19, 6)
+  totalCost        Decimal?        @db.Decimal(19, 6)
   /// Merchant-entered current selling price. Optional until set.
-  sellingPrice Decimal?     @db.Decimal(19, 6)
+  sellingPrice     Decimal?        @db.Decimal(19, 6)
   /// Free-form merchant notes about this product's cost structure.
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   items CostItem[]
 
@@ -153,20 +153,68 @@ model CostItem {
 /// Reference to a Shopify product the merchant has chosen to optimize.
 /// Does not duplicate Shopify product fields.
 model TrackedProduct {
-  id               String   @id @default(cuid())
+  id                       String   @id @default(cuid())
   /// Shop domain (e.g. "store.myshopify.com") — multi-tenant isolation key.
-  shopId           String
+  shopId                   String
   /// Shopify product identifier (GID preferred). Not a local FK.
-  shopifyProductId String
+  shopifyProductId         String
   /// Merchant's selected Shopify ProductVariant GID for costing context.
   /// Null until a variant is chosen (or auto-selected for single-variant products).
   selectedShopifyVariantId String?
   /// When the merchant added this product to the workspace.
-  trackedAt        DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  trackedAt                DateTime @default(now())
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  savedComparisonItems SavedComparisonItem[]
 
   /// One Shopify product can only be tracked once per shop.
   @@unique([shopId, shopifyProductId])
   @@index([shopId])
+}
+
+// -----------------------------------------------------------------------------
+// Saved Comparison domain
+//
+// Reusable multi-product comparison workspace. Stores only membership
+// (tracked products + selected Shopify variants). Prices, costs, Decision
+// Strategies, and simulation results are NEVER persisted here — they are
+// resolved fresh from ProfitPilot/Shopify when the group is opened.
+// -----------------------------------------------------------------------------
+
+/// Merchant-named comparison group owned by exactly one shop.
+model SavedComparison {
+  id        String   @id @default(cuid())
+  /// Shop domain (e.g. "store.myshopify.com") — multi-tenant isolation key.
+  shop      String
+  /// Merchant-provided display name. Not unique; duplicate groups are allowed.
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items SavedComparisonItem[]
+
+  @@index([shop])
+  @@index([shop, updatedAt])
+}
+
+/// One tracked product + selected Shopify variant in a Saved Comparison.
+/// Price/cost/title are not snapshotted — resolved live on open.
+model SavedComparisonItem {
+  id                String   @id @default(cuid())
+  savedComparisonId String
+  trackedProductId  String
+  /// Selected Shopify ProductVariant GID at save time.
+  shopifyVariantId  String
+  /// Restore / display order within the comparison (ascending).
+  position          Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  savedComparison SavedComparison @relation(fields: [savedComparisonId], references: [id], onDelete: Cascade)
+  trackedProduct  TrackedProduct  @relation(fields: [trackedProductId], references: [id], onDelete: Cascade)
+
+  @@unique([savedComparisonId, trackedProductId])
+  @@index([savedComparisonId, position])
+  @@index([trackedProductId])
 }

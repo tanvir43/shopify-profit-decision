@@ -8,7 +8,10 @@ import {
 } from "react";
 import { useFetcher, useRevalidator, useSearchParams } from "react-router";
 
+import { useIsNavigatingTo } from "~/hooks";
+
 import { filterTrackedProductsBySearch } from "../lib/filterTrackedProductsBySearch";
+import { compareScenariosHref } from "../lib/productStatus";
 import { TrackedProductRow } from "./TrackedProductRow";
 import { TrackedProductRowSkeleton } from "./TrackedProductRowSkeleton";
 import { TrackedProductsEmptyState } from "./TrackedProductsEmptyState";
@@ -45,6 +48,16 @@ function readEventValue(event: Event): string {
   return typeof target?.value === "string" ? target.value : "";
 }
 
+function readChecked(event: Event): boolean {
+  const currentTarget = event.currentTarget as { checked?: boolean } | null;
+  if (currentTarget && typeof currentTarget.checked === "boolean") {
+    return currentTarget.checked;
+  }
+
+  const target = event.target as { checked?: boolean } | null;
+  return Boolean(target?.checked);
+}
+
 /** Matches compact form fields elsewhere in the workspace (e.g. strategy inputs). */
 const PRODUCT_SEARCH_FIELD_MAX_WIDTH = "320px";
 
@@ -65,6 +78,7 @@ export function TrackedProductList({
     string | null
   >(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const isStopping = fetcher.state !== "idle";
   const highlightFromUrl = searchParams.get("highlight")?.trim() || null;
@@ -73,10 +87,84 @@ export function TrackedProductList({
     [products, searchQuery],
   );
   const hasActiveSearch = searchQuery.trim().length > 0;
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedTrackedProductIds = useMemo(
+    () =>
+      products
+        .filter((product) => selectedIdSet.has(product.trackedProductId))
+        .map((product) => product.trackedProductId),
+    [products, selectedIdSet],
+  );
+  const selectedCount = selectedTrackedProductIds.length;
+  const displayedIds = useMemo(
+    () => filteredProducts.map((product) => product.trackedProductId),
+    [filteredProducts],
+  );
+  const selectedDisplayedCount = displayedIds.filter((id) =>
+    selectedIdSet.has(id),
+  ).length;
+  const allDisplayedSelected =
+    displayedIds.length > 0 && selectedDisplayedCount === displayedIds.length;
+  const someDisplayedSelected =
+    selectedDisplayedCount > 0 && !allDisplayedSelected;
+  const compareHref =
+    selectedCount > 0 ? compareScenariosHref(selectedTrackedProductIds) : undefined;
+  const isComparing = useIsNavigatingTo(compareHref);
 
   const handleSearchInput = useCallback((event: Event) => {
     setSearchQuery(readEventValue(event));
   }, []);
+
+  useEffect(() => {
+    const availableIds = new Set(
+      products.map((product) => product.trackedProductId),
+    );
+
+    setSelectedIds((current) => {
+      const next = current.filter((id) => availableIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [products]);
+
+  const handleProductSelectedChange = useCallback(
+    (trackedProductId: string, selected: boolean) => {
+      setSelectedIds((current) => {
+        if (selected) {
+          return current.includes(trackedProductId)
+            ? current
+            : [...current, trackedProductId];
+        }
+
+        return current.filter((id) => id !== trackedProductId);
+      });
+    },
+    [],
+  );
+
+  const handleSelectAllDisplayedChange = useCallback(
+    (event: Event) => {
+      const shouldSelectAll = readChecked(event);
+
+      setSelectedIds((current) => {
+        const next = new Set(current);
+
+        if (shouldSelectAll) {
+          for (const id of displayedIds) {
+            next.add(id);
+          }
+        } else {
+          for (const id of displayedIds) {
+            next.delete(id);
+          }
+        }
+
+        return products
+          .map((product) => product.trackedProductId)
+          .filter((id) => next.has(id));
+      });
+    },
+    [displayedIds, products],
+  );
 
   useEffect(() => {
     if (!highlightFromUrl) {
@@ -188,6 +276,38 @@ export function TrackedProductList({
 
         {contentBeforeList}
 
+        {selectedCount > 0 ? (
+          <s-stack
+            direction="inline"
+            gap="base"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <s-stack direction="inline" gap="base" alignItems="center">
+              {displayedIds.length > 0 ? (
+                <s-checkbox
+                  label="Select all"
+                  checked={allDisplayedSelected}
+                  indeterminate={someDisplayedSelected}
+                  onChange={handleSelectAllDisplayedChange}
+                />
+              ) : null}
+              <s-text>
+                {selectedCount === 1
+                  ? "1 product selected"
+                  : `${selectedCount} products selected`}
+              </s-text>
+            </s-stack>
+            <s-button
+              variant="primary"
+              href={compareHref}
+              loading={isComparing}
+            >
+              Compare scenarios
+            </s-button>
+          </s-stack>
+        ) : null}
+
         {hasActiveSearch && filteredProducts.length === 0 ? (
           <s-banner tone="info" heading="No matching products">
             <s-text>
@@ -202,6 +322,10 @@ export function TrackedProductList({
             <TrackedProductRow
               key={product.trackedProductId}
               {...product}
+              selected={selectedIdSet.has(product.trackedProductId)}
+              onSelectedChange={(selected) =>
+                handleProductSelectedChange(product.trackedProductId, selected)
+              }
               onStopTracking={handleStopTrackingRequest}
               stopTrackingDisabled={isStopping}
               highlighted={product.trackedProductId === highlightedProductId}

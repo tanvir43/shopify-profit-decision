@@ -1,26 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 
-import { validateQuickStartTotalCost } from "~/modules/cost-profiles/lib/validateQuickStartTotalCost";
+import { validateSellingPrice } from "~/modules/cost-profiles/lib/validateSellingPrice";
 
-import { trackedProductHref } from "../lib/productStatus";
-import type { QuickStartActionData } from "../QuickStartPage";
-import { VariantContextBanner } from "./VariantContextBanner";
+import { sellingPriceHref } from "../lib/productStatus";
 import type { VariantContext } from "../lib/variantContext";
+import type { SellingPriceActionData } from "../SellingPricePage";
+import {
+  SellingPriceMethodFields,
+  type SellingPricePricingMethod,
+} from "./SellingPriceMethodFields";
+import { VariantContextBanner } from "./VariantContextBanner";
 
-export const QUICK_START_MODAL_ID = "quick-start-modal";
-
-type QuickStartModalProps = {
+type SellingPriceEditModalProps = {
+  modalId: string;
   trackedProductId: string;
   productTitle: string;
   variant: VariantContext;
   currency: string;
-  initialTotalCost?: string | null;
-  heading?: string;
-  saveLabel?: string;
-  modalId?: string;
-  action?: string;
-  shopifyVariantId?: string;
+  totalCost: string | null;
+  sellingPrice: string | null;
+  shopifyVariantId: string;
 };
 
 type ModalElement = HTMLElement & {
@@ -28,30 +28,54 @@ type ModalElement = HTMLElement & {
   hideOverlay: () => void;
 };
 
+function formatInputAmount(amount: string | null): string {
+  if (amount == null || amount === "") {
+    return "";
+  }
+
+  const value = Number(amount);
+  if (!Number.isFinite(value)) {
+    return amount;
+  }
+
+  return value.toFixed(2);
+}
+
+function readEventValue(event: Event): string {
+  const currentTarget = event.currentTarget as { value?: string } | null;
+  if (currentTarget && typeof currentTarget.value === "string") {
+    return currentTarget.value;
+  }
+
+  const target = event.target as { value?: string } | null;
+  return typeof target?.value === "string" ? target.value : "";
+}
+
 /**
- * Quick Start total-cost entry in a modal — avoids a full route navigation.
+ * Compare-table Current Price editor — same validation, persistence, and
+ * SellingPriceMethodFields as the Decision Workspace inline editor.
  */
-export function QuickStartModal({
+export function SellingPriceEditModal({
+  modalId,
   trackedProductId,
   productTitle,
   variant,
   currency,
-  initialTotalCost = null,
-  heading = "Quick Start",
-  saveLabel = "Save & Continue",
-  modalId = QUICK_START_MODAL_ID,
-  action,
+  totalCost,
+  sellingPrice,
   shopifyVariantId,
-}: QuickStartModalProps) {
-  const fetcher = useFetcher<QuickStartActionData>();
+}: SellingPriceEditModalProps) {
+  const fetcher = useFetcher<SellingPriceActionData>();
   const modalRef = useRef<ModalElement | null>(null);
   const allowClose = useRef(true);
   const isOpen = useRef(false);
   const handledSubmission = useRef(false);
-  const baselineRef = useRef(initialTotalCost ?? "");
-  const valueRef = useRef(initialTotalCost ?? "");
+  const baselineRef = useRef(formatInputAmount(sellingPrice));
+  const valueRef = useRef(formatInputAmount(sellingPrice));
 
-  const [value, setValue] = useState(initialTotalCost ?? "");
+  const [pricingMethod, setPricingMethod] =
+    useState<SellingPricePricingMethod>("manual");
+  const [value, setValue] = useState(() => formatInputAmount(sellingPrice));
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -64,15 +88,17 @@ export function QuickStartModal({
 
   const resetToBaseline = useCallback(() => {
     setValueBoth(baselineRef.current);
+    setPricingMethod("manual");
     setFieldError(null);
     setSaveError(null);
   }, [setValueBoth]);
 
   const syncFromProps = useCallback(
-    (nextInitial: string | null | undefined) => {
-      const next = nextInitial ?? "";
+    (nextSellingPrice: string | null) => {
+      const next = formatInputAmount(nextSellingPrice);
       baselineRef.current = next;
       setValueBoth(next);
+      setPricingMethod("manual");
       setFieldError(null);
       setSaveError(null);
     },
@@ -81,9 +107,9 @@ export function QuickStartModal({
 
   useEffect(() => {
     if (!isOpen.current) {
-      syncFromProps(initialTotalCost);
+      syncFromProps(sellingPrice);
     }
-  }, [initialTotalCost, syncFromProps]);
+  }, [sellingPrice, syncFromProps]);
 
   useEffect(() => {
     if (fetcher.state === "submitting") {
@@ -108,10 +134,9 @@ export function QuickStartModal({
     }
   }, [fetcher.state, fetcher.data]);
 
-  const handleChange = useCallback(
+  const handleInput = useCallback(
     (event: Event) => {
-      const target = event.target as HTMLInputElement;
-      setValueBoth(target.value);
+      setValueBoth(readEventValue(event));
       if (fieldError) {
         setFieldError(null);
       }
@@ -122,37 +147,37 @@ export function QuickStartModal({
     [fieldError, saveError, setValueBoth],
   );
 
+  const handleSuggestedPriceApplied = useCallback((suggested: string) => {
+    setValueBoth(suggested);
+    setFieldError(null);
+    setSaveError(null);
+  }, [setValueBoth]);
+
   const handleSave = useCallback(() => {
     if (isSaving) {
       return;
     }
 
     setSaveError(null);
+    handledSubmission.current = false;
 
-    const result = validateQuickStartTotalCost(valueRef.current);
+    const result = validateSellingPrice(valueRef.current);
     if (!result.ok) {
+      setPricingMethod("manual");
       setFieldError(result.message);
       return;
     }
 
     setFieldError(null);
 
-    const payload: Record<string, string> = {
-      intent: "quick-start-save",
-      totalCost: result.value,
-      currency,
-      trackedProductId,
-    };
-
-    if (shopifyVariantId != null) {
-      payload.shopifyVariantId = shopifyVariantId;
-    }
-
-    fetcher.submit(payload, {
-      method: "post",
-      action: action ?? trackedProductHref(trackedProductId),
-    });
-  }, [action, currency, fetcher, isSaving, shopifyVariantId, trackedProductId]);
+    fetcher.submit(
+      { sellingPrice: result.value, shopifyVariantId },
+      {
+        method: "post",
+        action: sellingPriceHref(trackedProductId),
+      },
+    );
+  }, [fetcher, isSaving, shopifyVariantId, trackedProductId]);
 
   const handleCancel = useCallback(() => {
     if (isSaving) {
@@ -171,8 +196,8 @@ export function QuickStartModal({
 
     isOpen.current = true;
     allowClose.current = false;
-    syncFromProps(initialTotalCost);
-  }, [initialTotalCost, syncFromProps]);
+    syncFromProps(sellingPrice);
+  }, [sellingPrice, syncFromProps]);
 
   const handleHide = useCallback(() => {
     const dirty = valueRef.current !== baselineRef.current;
@@ -192,7 +217,7 @@ export function QuickStartModal({
   return (
     <s-modal
       id={modalId}
-      heading={heading}
+      heading="Edit Selling Price"
       ref={modalRef as never}
       onShow={handleShow}
       onHide={handleHide}
@@ -206,31 +231,30 @@ export function QuickStartModal({
           </s-banner>
         ) : null}
 
-        <s-paragraph>
-          Enter the total cost of this product. You can always break it down
-          into individual cost components later.
-        </s-paragraph>
-
-        <s-text-field
-          label="Total Product Cost"
-          name="totalCost"
-          value={value}
-          prefix={currency}
+        <SellingPriceMethodFields
+          currency={currency}
+          totalCost={totalCost}
+          pricingMethod={pricingMethod}
+          onPricingMethodChange={setPricingMethod}
+          sellingPriceValue={value}
+          sellingPriceError={fieldError ?? undefined}
           disabled={isSaving}
-          error={fieldError ?? undefined}
-          onChange={handleChange}
+          onSellingPriceInput={handleInput}
+          onSuggestedPriceApplied={handleSuggestedPriceApplied}
         />
       </s-stack>
 
-      <s-button
-        slot="primary-action"
-        variant="primary"
-        disabled={isSaving}
-        loading={isSaving}
-        onClick={handleSave}
-      >
-        {saveLabel}
-      </s-button>
+      {pricingMethod === "manual" ? (
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          disabled={isSaving}
+          loading={isSaving}
+          onClick={handleSave}
+        >
+          Save
+        </s-button>
+      ) : null}
       <s-button
         slot="secondary-actions"
         variant="secondary"

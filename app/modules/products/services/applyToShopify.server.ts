@@ -38,7 +38,7 @@ function collectUserErrors(
     .filter((message): message is string => Boolean(message));
 }
 
-async function fetchVariantShopifyContext(
+export async function fetchVariantShopifyContext(
   admin: AdminGraphql,
   shopifyVariantId: string,
 ): Promise<VariantShopifyContext | null> {
@@ -90,7 +90,7 @@ async function fetchVariantShopifyContext(
   };
 }
 
-async function updateVariantPrice(
+export async function updateVariantPrice(
   admin: AdminGraphql,
   shopifyProductId: string,
   shopifyVariantId: string,

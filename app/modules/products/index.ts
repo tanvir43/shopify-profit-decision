@@ -32,6 +32,10 @@ export {
   type SellingPricePageData,
 } from "./SellingPricePage";
 export {
+  CompareScenariosPage,
+  type CompareScenariosPageData,
+} from "./CompareScenariosPage";
+export {
   ProductList,
   ProductListEmptyState,
   TrackedProductList,

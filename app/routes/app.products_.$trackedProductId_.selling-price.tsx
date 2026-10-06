@@ -15,6 +15,7 @@ import {
   CostProfileNotFoundError,
   CostProfileValidationError,
 } from "~/modules/cost-profiles";
+import { PRODUCT_LEVEL_VARIANT_ID } from "~/modules/cost-profiles/lib/variantContext";
 import { sellingPriceService } from "~/modules/cost-profiles/services/sellingPriceService.server";
 import {
   SellingPricePage,
@@ -22,7 +23,10 @@ import {
 } from "~/modules/products";
 import { fetchProductsByIds } from "~/modules/products/services/shopifyProductsService.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
-import { resolveTrackedProductVariantId } from "~/modules/products/services/variantSelection.server";
+import {
+  resolveTrackedProductVariantId,
+  verifyVariantBelongsToTrackedProduct,
+} from "~/modules/products/services/variantSelection.server";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -102,7 +106,16 @@ export const action = async ({
     return { ok: false, error: "Enter a selling price." } satisfies SellingPriceActionData;
   }
 
-  const shopifyVariantId = await resolveTrackedProductVariantId(admin, tracked);
+  const shopifyVariantId = await resolveSellingPriceSaveVariantId(
+    admin,
+    session.shop,
+    tracked,
+    formData.get("shopifyVariantId"),
+  );
+
+  if (shopifyVariantId == null) {
+    return { ok: false, error: "We couldn't save your selling price. Try again." } satisfies SellingPriceActionData;
+  }
 
   try {
     await sellingPriceService.saveSellingPrice(
@@ -133,6 +146,40 @@ export const action = async ({
   // revalidate; the dedicated Selling Price page navigates on ok.
   return { ok: true } satisfies SellingPriceActionData;
 };
+
+/**
+ * Honor an explicit, shop-verified variant from the inline/compare editors.
+ * The dedicated Selling Price page omits the field and keeps resolver behavior.
+ */
+async function resolveSellingPriceSaveVariantId(
+  admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"],
+  shop: string,
+  tracked: NonNullable<
+    Awaited<ReturnType<typeof trackedProductService.getTrackedProduct>>
+  >,
+  shopifyVariantIdRaw: FormDataEntryValue | null,
+): Promise<string | null> {
+  if (typeof shopifyVariantIdRaw !== "string") {
+    return resolveTrackedProductVariantId(admin, tracked);
+  }
+
+  const shopifyVariantId = shopifyVariantIdRaw.trim();
+  if (!shopifyVariantId) {
+    return PRODUCT_LEVEL_VARIANT_ID;
+  }
+
+  try {
+    await verifyVariantBelongsToTrackedProduct(
+      admin,
+      shop,
+      tracked.id,
+      shopifyVariantId,
+    );
+    return shopifyVariantId;
+  } catch {
+    return null;
+  }
+}
 
 export default function SellingPriceRoute() {
   const data = useLoaderData<typeof loader>();

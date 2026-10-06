@@ -4,6 +4,7 @@ import { Await, Link } from "react-router";
 import { PageLayout } from "~/components/PageLayout";
 
 import { EmptyStateOnboardingCard } from "./components/EmptyStateOnboardingCard";
+import { SavedComparisonsList } from "./components/SavedComparisonsList";
 import {
   TrackedProductList,
   TrackedProductListSkeleton,
@@ -12,6 +13,7 @@ import {
   ALREADY_TRACKED_MESSAGE,
   useAddTrackedProducts,
 } from "./hooks/useAddTrackedProducts";
+import type { SavedComparisonSummary } from "./lib/savedComparisons";
 import type { TrackedProductWorkspaceData } from "./services/trackedProductWorkspace.server";
 
 export type TrackedProductUsageSummary = {
@@ -25,6 +27,7 @@ export type TrackedProductsPageData = {
   trackedCount: number;
   trackedShopifyProductIds: string[];
   productUsage: TrackedProductUsageSummary;
+  savedComparisons: SavedComparisonSummary[];
   workspace: Promise<TrackedProductWorkspaceData>;
 };
 
@@ -57,6 +60,7 @@ type WorkspaceContentProps = {
   onAddProducts: () => void;
   addProductsDisabled: boolean;
   contentBeforeList: ReactNode;
+  savedComparisons: SavedComparisonSummary[];
 };
 
 function WorkspaceContent({
@@ -64,6 +68,7 @@ function WorkspaceContent({
   onAddProducts,
   addProductsDisabled,
   contentBeforeList,
+  savedComparisons,
 }: WorkspaceContentProps) {
   return (
     <>
@@ -76,7 +81,12 @@ function WorkspaceContent({
         products={workspace.items}
         onAddProducts={onAddProducts}
         addProductsDisabled={addProductsDisabled}
-        contentBeforeList={contentBeforeList}
+        contentBeforeList={
+          <>
+            {contentBeforeList}
+            <SavedComparisonsList comparisons={savedComparisons} />
+          </>
+        }
       />
     </>
   );
@@ -169,6 +179,7 @@ export function ProductsPage({ data }: ProductsPageProps) {
                 onAddProducts={addProducts}
                 addProductsDisabled={isTracking}
                 contentBeforeList={usageSummary}
+                savedComparisons={data.savedComparisons}
               />
             )}
           </Await>
@@ -176,6 +187,7 @@ export function ProductsPage({ data }: ProductsPageProps) {
       ) : (
         <s-stack direction="block" gap="base">
           {usageSummary}
+          <SavedComparisonsList comparisons={data.savedComparisons} />
           <EmptyStateOnboardingCard
             onAddProducts={addProducts}
             addProductsDisabled={isTracking}

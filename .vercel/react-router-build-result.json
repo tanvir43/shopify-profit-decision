@@ -26,6 +26,7 @@
       "routes/app.products_.$trackedProductId_.quick-start": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.products_.$productId.cost-profile": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.products_.$trackedProductId": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/app.products_.compare": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.discounts": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.products": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.settings": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
@@ -186,6 +187,15 @@
         "parentId": "routes/app",
         "file": "app/routes/app.products_.$trackedProductId.tsx",
         "path": "products/:trackedProductId",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/app.products_.compare": {
+        "id": "routes/app.products_.compare",
+        "parentId": "routes/app",
+        "file": "app/routes/app.products_.compare.tsx",
+        "path": "products/compare",
         "config": {
           "runtime": "nodejs"
         }
@@ -358,6 +368,12 @@
         "file": "routes/app.products_.$trackedProductId.tsx",
         "path": "products/:trackedProductId"
       },
+      "routes/app.products_.compare": {
+        "id": "routes/app.products_.compare",
+        "parentId": "routes/app",
+        "file": "routes/app.products_.compare.tsx",
+        "path": "products/compare"
+      },
       "routes/app.discounts": {
         "id": "routes/app.discounts",
         "parentId": "routes/app",
@@ -488,6 +504,11 @@
                 "id": "routes/app.products_.$trackedProductId",
                 "file": "routes/app.products_.$trackedProductId.tsx",
                 "path": "products/:trackedProductId"
+              },
+              {
+                "id": "routes/app.products_.compare",
+                "file": "routes/app.products_.compare.tsx",
+                "path": "products/compare"
               },
               {
                 "id": "routes/app.discounts",

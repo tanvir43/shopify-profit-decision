@@ -15,8 +15,17 @@ import { ProductsPage } from "~/modules/products";
 import type { StopTrackingActionData } from "~/modules/products/components/TrackedProductList";
 import type { TrackProductsActionData } from "~/modules/products/hooks/useAddTrackedProducts";
 import { ALREADY_TRACKED_MESSAGE } from "~/modules/products/hooks/useAddTrackedProducts";
-import { loadTrackedProductWorkspace } from "~/modules/products/services/trackedProductWorkspace.server";
+import {
+  DELETE_SAVED_COMPARISON_INTENT,
+  RENAME_SAVED_COMPARISON_INTENT,
+} from "~/modules/products/lib/savedComparisons";
+import {
+  handleDeleteSavedComparisonAction,
+  handleRenameSavedComparisonAction,
+  listSavedComparisons,
+} from "~/modules/products/services/savedComparisons.server";
 import { trackedProductService } from "~/modules/products/services/trackedProductService.server";
+import { loadTrackedProductWorkspace } from "~/modules/products/services/trackedProductWorkspace.server";
 import { authenticate } from "~/shopify.server";
 
 /**
@@ -29,9 +38,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const shopGid = await resolveShopGid(admin);
 
-  const [tracked, productUsage] = await Promise.all([
+  const [tracked, productUsage, savedComparisons] = await Promise.all([
     trackedProductService.listTrackedProducts(session.shop),
     loadTrackedProductUsage(prisma, session.shop, shopGid),
+    listSavedComparisons(session.shop),
   ]);
 
   return {
@@ -45,6 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isUnlimited: productUsage.isUnlimited,
       planDisplayName: productUsage.entitlement.displayName,
     },
+    savedComparisons,
     workspace: loadTrackedProductWorkspace(admin, tracked, session.shop),
   };
 };
@@ -57,11 +68,20 @@ export const action = async ({
   const { session, admin } = await authenticate.admin(request);
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === RENAME_SAVED_COMPARISON_INTENT) {
+    return handleRenameSavedComparisonAction(session.shop, formData);
+  }
+
+  if (intent === DELETE_SAVED_COMPARISON_INTENT) {
+    return handleDeleteSavedComparisonAction(session.shop, formData);
+  }
 
   // TEMP-001 — temporary Launch Sprint testing helper; remove UI before App Store submission.
   // Deletes ProfitPilot data only (TrackedProduct + CostProfile + cascaded CostItems).
   // Does not call Shopify Admin Product APIs.
-  if (formData.get("intent") === "stop-tracking") {
+  if (intent === "stop-tracking") {
     const shopifyProductIdRaw = formData.get("shopifyProductId");
 
     if (

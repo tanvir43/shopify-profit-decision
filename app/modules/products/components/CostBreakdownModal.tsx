@@ -25,6 +25,10 @@ type CostBreakdownModalProps = {
   variant: VariantContext;
   currency: string;
   initialAmounts: CostBreakdownAmounts;
+  modalId?: string;
+  heading?: string;
+  action?: string;
+  shopifyVariantId?: string;
 };
 
 type ModalElement = HTMLElement & {
@@ -52,6 +56,10 @@ export function CostBreakdownModal({
   variant,
   currency,
   initialAmounts,
+  modalId = COST_BREAKDOWN_MODAL_ID,
+  heading = "Edit Cost Breakdown",
+  action,
+  shopifyVariantId,
 }: CostBreakdownModalProps) {
   const fetcher = useFetcher<DetailedSetupActionData>();
   const modalRef = useRef<ModalElement | null>(null);
@@ -168,16 +176,28 @@ export function CostBreakdownModal({
     const formPayload: Record<string, string> = {
       intent: "detailed-setup-save",
       currency,
+      trackedProductId,
     };
     for (const type of COST_ITEM_TYPES) {
       formPayload[type] = current[type];
     }
 
+    if (shopifyVariantId != null) {
+      formPayload.shopifyVariantId = shopifyVariantId;
+    }
+
     fetcher.submit(formPayload, {
       method: "post",
-      action: trackedProductHref(trackedProductId),
+      action: action ?? trackedProductHref(trackedProductId),
     });
-  }, [currency, fetcher, isSaving, trackedProductId]);
+  }, [
+    action,
+    currency,
+    fetcher,
+    isSaving,
+    shopifyVariantId,
+    trackedProductId,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (isSaving) {
@@ -218,8 +238,8 @@ export function CostBreakdownModal({
 
   return (
     <s-modal
-      id={COST_BREAKDOWN_MODAL_ID}
-      heading="Edit Cost Breakdown"
+      id={modalId}
+      heading={heading}
       size="large"
       ref={modalRef as never}
       onShow={handleShow}
