@@ -24,6 +24,13 @@ type AdminGraphql = Awaited<ReturnType<typeof authenticate.admin>>["admin"];
 export type { SavedComparisonActionData };
 
 export async function listSavedComparisons(shop: string) {
+  if (typeof prisma.savedComparison?.findMany !== "function") {
+    console.error(
+      "Prisma client is missing SavedComparison. Run prisma generate during install/build and redeploy.",
+    );
+    return [];
+  }
+
   return listSavedComparisonsForShop(prisma, shop);
 }
 
