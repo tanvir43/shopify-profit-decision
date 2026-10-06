@@ -307,7 +307,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
       return (
         <s-stack direction="block" gap="small-100">
           <s-checkbox
-            label="Offer Free Shipping"
+            label="Offer free shipping"
             name="freeShipping"
             checked={enabled}
             onChange={(event: Event) => {
@@ -315,7 +315,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
             }}
           />
           <StrategyNumericField
-            label="Shipping Cost"
+            label="Shipping cost you'll cover"
             name="shippingCost"
             value={fields.free_shipping.shippingCost}
             prefix={currencyPrefix}
@@ -327,7 +327,7 @@ const STRATEGY_CONTROL_RENDERERS: Record<StrategyId, StrategyControlRenderer> =
           />
           {enabled ? (
             <s-text color="subdued">
-              Deducted from projected profit when Free Shipping is on.
+              Enter the shipping cost you expect to pay for this order.
             </s-text>
           ) : null}
           {enabled && fieldWarning ? (

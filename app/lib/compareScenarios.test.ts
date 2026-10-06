@@ -443,17 +443,17 @@ describe("multi-product simulation parity", () => {
     const strategies = strategyInputs(["free_shipping"], {
       free_shipping: { enabled: true, shippingCost: "8" },
     });
+    const baseline = simulateProjectedOutcome(shirt, strategies);
+    const comparison = simulateComparisonRow(shirt, strategies, {
+      costReady: true,
+    }).simulatedOutcome;
 
-    assert.deepEqual(
-      simulateComparisonRow(shirt, strategies, { costReady: true })
-        .simulatedOutcome,
-      simulateProjectedOutcome(shirt, strategies),
-    );
-    assert.equal(
-      simulateComparisonRow(shirt, strategies, { costReady: true })
-        .simulatedOutcome.profitLoss,
-      18,
-    );
+    assert.deepEqual(comparison, baseline);
+    // $50 revenue − $24 product cost − $8 merchant-covered shipping = $18
+    assert.equal(baseline.profitLoss, 18);
+    assert.equal(baseline.evaluatedSellingPrice, 50);
+    assert.equal(baseline.evaluatedTotalCost, 32);
+    assert.equal(baseline.marginPercent, 36);
   });
 
   it("preserves existing Coupon semantics", () => {
